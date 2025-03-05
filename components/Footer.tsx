@@ -12,13 +12,13 @@ const NavBar = () => {
           </Link>
           
           <div className="flex items-center space-x-6">
-            <Link href="/" className="text-gray-600 hover:text-black">
+            <Link href="/" className="text-gray-100 hover:text-black">
               Home
             </Link>
-            <Link href="/books" className="text-gray-600 hover:text-black">
+            <Link href="/books" className="text-gray-100 hover:text-black">
               My Books
             </Link>
-            <Link href="/analysis" className="text-gray-600 hover:text-black flex items-center">
+            <Link href="/analysis" className="text-gray-100 hover:text-black flex items-center">
               <BarChart className="mr-1 h-4 w-4" />
               Analysis
             </Link>

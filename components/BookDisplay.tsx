@@ -185,27 +185,27 @@ const BookDisplay = ({
                   <dl className="grid grid-cols-1 gap-x-4 gap-y-6">
                     <div>
                       <dt className="text-sm font-medium text-gray-500">Title</dt>
-                      <dd className="mt-1 text-sm text-gray-900">{book.title}</dd>
+                      <dd className="mt-1 text-sm text-gray-1000">{book.title}</dd>
                     </div>
                     <div>
                       <dt className="text-sm font-medium text-gray-500">Author</dt>
-                      <dd className="mt-1 text-sm text-gray-900">{book.author}</dd>
+                      <dd className="mt-1 text-sm text-gray-1000">{book.author}</dd>
                     </div>
                     <div>
                       <dt className="text-sm font-medium text-gray-500">Language</dt>
-                      <dd className="mt-1 text-sm text-gray-900">{book.language}</dd>
+                      <dd className="mt-1 text-sm text-gray-1000">{book.language}</dd>
                     </div>
                     <div>
                       <dt className="text-sm font-medium text-gray-500">Publisher</dt>
-                      <dd className="mt-1 text-sm text-gray-900">{book.publisher}</dd>
+                      <dd className="mt-1 text-sm text-gray-1000">{book.publisher}</dd>
                     </div>
                     <div>
                       <dt className="text-sm font-medium text-gray-500">Publish Date</dt>
-                      <dd className="mt-1 text-sm text-gray-900">{book.publishDate}</dd>
+                      <dd className="mt-1 text-sm text-gray-1000">{book.publishDate}</dd>
                     </div>
                     <div>
                       <dt className="text-sm font-medium text-gray-500">Rights</dt>
-                      <dd className="mt-1 text-sm text-gray-900">{book.rights}</dd>
+                      <dd className="mt-1 text-sm text-gray-1000">{book.rights}</dd>
                     </div>
                     <div>
                       <dt className="text-sm font-medium text-gray-500 flex items-center">

@@ -130,7 +130,6 @@ const TextAnalysis = ({ bookId, bookTitle, bookContent }: AnalysisProps) => {
       for (let i = 0; i < chapters.length; i++) {
         // Update progress
         setAnalysisProgress(Math.round((i / chapters.length) * 100))
-        await new Promise(resolve => setTimeout(resolve, 2000))
         
         // Skip if we already have this analysis
         if (
@@ -141,6 +140,7 @@ const TextAnalysis = ({ bookId, bookTitle, bookContent }: AnalysisProps) => {
         }
         
         // Run analysis
+        await new Promise(resolve => setTimeout(resolve, 3000))
         const result = await analyzeWithGroq(chapters[i].content, activeAnalysis)
         
         // Update the analysis data
@@ -207,9 +207,9 @@ const TextAnalysis = ({ bookId, bookTitle, bookContent }: AnalysisProps) => {
               : `${chapters.length} chapters detected`}
             
             {language && (
-              <Badge variant="outline" className="ml-2">
+              <span  className="ml-2">
                 {language.language}
-              </Badge>
+              </span>
             )}
             
             {!language && (
@@ -273,8 +273,8 @@ const TextAnalysis = ({ bookId, bookTitle, bookContent }: AnalysisProps) => {
                 Select Chapter to Analyze
               </h3>
               
-              <div className="bg-gray-50 rounded-md p-2 max-h-60 overflow-y-auto">
-                <Accordion type="single" collapsible>
+              <div>
+                <Accordion type="single" collapsible  className="rounded-md p-2 max-h-60 overflow-y-auto">
                   {chapters.map((chapter, index) => (
                     <AccordionItem key={index} value={`chapter-${index}`}>
                       <AccordionTrigger className="text-sm py-2 hover:no-underline">
@@ -286,7 +286,7 @@ const TextAnalysis = ({ bookId, bookTitle, bookContent }: AnalysisProps) => {
                         </div>
                       </AccordionTrigger>
                       <AccordionContent>
-                        <div className="text-xs text-gray-600 mb-2">
+                        <div className="text-xs mb-2">
                           {getChapterPreview(chapter.content)}
                         </div>
                         <Button 
@@ -366,7 +366,7 @@ const TextAnalysis = ({ bookId, bookTitle, bookContent }: AnalysisProps) => {
                 </div>
               ) : getCurrentAnalysisData() ? (
                 <div className="space-y-6">
-                  <div className="bg-gray-50 p-3 rounded-md">
+                  <div className="p-3 rounded-md">
                     <h3 className="font-medium text-sm mb-1">
                       Chapter Analysis: {chapters[activeChapter].title}
                     </h3>
@@ -376,12 +376,12 @@ const TextAnalysis = ({ bookId, bookTitle, bookContent }: AnalysisProps) => {
                     getCurrentAnalysisData().map((character: any, index: number) => (
                       <div key={index} className="flex items-start space-x-3">
                         <div className="bg-blue-100 text-blue-800 rounded-full h-10 w-10 flex items-center justify-center flex-shrink-0">
-                          {character.name.charAt(0)}
+                          {character.name ? character.name.charAt(0) : '?'}
                         </div>
                         <div>
                           <h3 className="font-medium">{character.name}</h3>
                           <p className="text-sm text-gray-600">{character.description}</p>
-                          <span className="inline-block mt-1 px-2 py-1 rounded text-xs bg-gray-100">
+                          <span className="inline-block mt-1 px-2 py-1 rounded text-xs bg-gray-900">
                             {character.importance}
                           </span>
                         </div>
@@ -409,7 +409,7 @@ const TextAnalysis = ({ bookId, bookTitle, bookContent }: AnalysisProps) => {
                 </div>
               ) : getCurrentAnalysisData() ? (
                 <div>
-                  <div className="bg-gray-50 p-3 rounded-md mb-4">
+                  <div className="p-3 rounded-md mb-4">
                     <h3 className="font-medium text-sm mb-1">
                       Chapter Summary: {chapters[activeChapter].title}
                     </h3>
@@ -441,7 +441,7 @@ const TextAnalysis = ({ bookId, bookTitle, bookContent }: AnalysisProps) => {
                 </div>
               ) : getCurrentAnalysisData() ? (
                 <div>
-                  <div className="bg-gray-50 p-3 rounded-md mb-4">
+                  <div className="p-3 rounded-md mb-4">
                     <h3 className="font-medium text-sm mb-1">
                       Sentiment Analysis: {chapters[activeChapter].title}
                     </h3>
@@ -495,7 +495,7 @@ const TextAnalysis = ({ bookId, bookTitle, bookContent }: AnalysisProps) => {
                 </div>
               ) : getCurrentAnalysisData() ? (
                 <div>
-                  <div className="bg-gray-50 p-3 rounded-md mb-4">
+                  <div className="p-3 rounded-md mb-4">
                     <h3 className="font-medium text-sm mb-1">
                       Theme Analysis: {chapters[activeChapter].title}
                     </h3>
