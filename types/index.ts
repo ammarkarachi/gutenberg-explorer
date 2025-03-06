@@ -50,4 +50,12 @@ export interface Book {
     download_count: number
   }
 
+  export type BookRecord = {
+    gitb_id: string;
+    gitb_name: string;
+    title: string;
+    language: string;
+    text_files: string[];
+  };
+
   export interface CharacterAnalysis extends Array<Character> {}

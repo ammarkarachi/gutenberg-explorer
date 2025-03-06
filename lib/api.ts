@@ -1,6 +1,7 @@
-import { BookMetadata } from '@/types';
+import { BookMetadata, BookRecord } from '@/types';
 import axios from 'axios';
 import { preprocessBookText } from './utils';
+import Fuse from 'fuse.js';
 
 
 let bookRecords: BookRecord[] | null = null;
@@ -18,13 +19,24 @@ export async function fetchAndCacheTsv(): Promise<string | null> {
     throw new Error('Failed to fetch TSV data');
   }
 }
-type BookRecord = {
-  gitb_id: string;
-  gitb_name: string;
-  title: string;
-  language: string;
-  text_files: string[];
-};
+
+
+/**
+ * Performs a fuzzy search on the title and starts with on the id
+ */
+export async function searchBooks(query: string): Promise<BookRecord[]> {
+  const bookRecords = await getBookRecords();
+  
+  const fuse = new Fuse(bookRecords, {
+    keys: ['title'],
+    threshold: 0.4,
+  });
+
+  const fuzzyResults = fuse.search(query).map(result => result.item);
+  const idResults = bookRecords.filter(record => record.gitb_id && record.gitb_id.startsWith(query));
+
+  return [...new Set([...fuzzyResults, ...idResults])].slice(0, 10);
+}
 
 /**
  * Parses TSV data and transforms it into an array of BookRecord objects
