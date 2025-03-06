@@ -30,7 +30,6 @@ const BookSearch = ({ onSelectBook }: { onSelectBook?: (bookId: string) => void 
     
     const handler = setTimeout(async () => {
       const books = await searchBooks(searchText)
-      console.log(books)
       setSearchResults(books)
     }, 300)
     

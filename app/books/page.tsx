@@ -22,7 +22,6 @@ export default function SavedBooksPage() {
     removeBookFromCache
   } = useBookCacheStore()
   useEffect(() => {
-    console.log(cachedBooks)
     setSavedBooks(Object.values(cachedBooks).map(book => ({
       ...book,
       lastAccessed: new Date(book.lastAccessed)

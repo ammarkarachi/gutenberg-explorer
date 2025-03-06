@@ -228,7 +228,7 @@ const TextAnalysis = ({ bookId, bookTitle, bookContent }: AnalysisProps) => {
         
         // Run analysis
         await new Promise(resolve => setTimeout(resolve, 3000))
-        const result = await analyzeWithGroq(chapters[i].content, activeAnalysis)
+        const result = await handleAnalyzeChapter(i, activeAnalysis)
         
         // Update the analysis data
         setAnalysisData(prev => ({

@@ -35,7 +35,7 @@ export async function searchBooks(query: string): Promise<BookRecord[]> {
   const fuzzyResults = fuse.search(query).map(result => result.item);
   const idResults = bookRecords.filter(record => record.gitb_id && record.gitb_id.startsWith(query));
 
-  return [...new Set([...fuzzyResults, ...idResults])].slice(0, 10);
+  return [...new Set([...idResults, ...fuzzyResults])].slice(0, 10);
 }
 
 /**

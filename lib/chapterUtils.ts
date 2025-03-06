@@ -22,9 +22,7 @@ export function splitBookIntoChapters(text: string): { title: string; content: s
     
     while ((match = pattern.exec(text)) !== null) {
       const fullMatch = match[0];
-      const chapterNumber = match[1] || '';
       const chapterTitle = fullMatch.trim();
-      
       chapterMarkers.push({
         index: match.index,
         title: chapterTitle
