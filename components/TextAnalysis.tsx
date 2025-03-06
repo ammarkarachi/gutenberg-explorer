@@ -11,9 +11,13 @@ import {
   MessageSquare, 
   Download,
   BookOpen,
+  ChevronDown,
+  ChevronUp,
   Globe,
   Loader2,
-  Database
+  Database,
+  Lock,
+  KeyRound
 } from 'lucide-react'
 import { Skeleton } from "@/components/ui/skeleton"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
@@ -24,12 +28,15 @@ import { analyzeWithGroq, detectLanguage, getGroqRateLimits } from '@/lib/groqSe
 import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { useBookCacheStore } from '@/lib/bookCacheStore'
+import { ApiKeyModal, getStoredApiKey } from '@/components/ApiKeyModal'
 
 type AnalysisProps = {
   bookId: string
   bookTitle: string
   bookContent: string
 }
+
+const TEXT_ANALYSIS_SERVICE = 'Groq AI'
 
 const TextAnalysis = ({ bookId, bookTitle, bookContent }: AnalysisProps) => {
   const [activeAnalysis, setActiveAnalysis] = useState<AnalysisType>('characters')
@@ -40,6 +47,15 @@ const TextAnalysis = ({ bookId, bookTitle, bookContent }: AnalysisProps) => {
   const [isDetectingLanguage, setIsDetectingLanguage] = useState(false)
   const [analysisProgress, setAnalysisProgress] = useState(0)
   const [error, setError] = useState<string | null>(null)
+  
+  // API Key Related State
+  const [apiKey, setApiKey] = useState<string | null>(null)
+  const [showApiKeyModal, setShowApiKeyModal] = useState(false)
+  const [pendingAction, setPendingAction] = useState<{
+    type: 'analyze' | 'detectLanguage';
+    chapterIndex?: number;
+    analysisType?: AnalysisType;
+  } | null>(null)
   
   // Get cache functions
   const { 
@@ -55,6 +71,14 @@ const TextAnalysis = ({ bookId, bookTitle, bookContent }: AnalysisProps) => {
       [key in AnalysisType]?: any
     }
   }>({})
+  
+  // Check for stored API key on component mount
+  useEffect(() => {
+    const storedKey = getStoredApiKey(TEXT_ANALYSIS_SERVICE)
+    if (storedKey) {
+      setApiKey(storedKey)
+    }
+  }, [])
   
   // Split the book into chapters on component mount
   useEffect(() => {
@@ -110,98 +134,78 @@ const TextAnalysis = ({ bookId, bookTitle, bookContent }: AnalysisProps) => {
     }
   }, [bookId, activeChapter, activeAnalysis, saveProgress])
   
+  // When API key is set, complete any pending action
+  useEffect(() => {
+    if (apiKey && pendingAction) {
+      if (pendingAction.type === 'analyze' && 
+          pendingAction.chapterIndex !== undefined && 
+          pendingAction.analysisType) {
+        // Set environment variable for the API call
+        process.env.NEXT_PUBLIC_GROQ_API_KEY = apiKey;
+        
+        // Continue with analysis
+        performAnalysis(
+          pendingAction.chapterIndex, 
+          pendingAction.analysisType,
+          apiKey
+        )
+      } else if (pendingAction.type === 'detectLanguage') {
+        // Set environment variable for the API call
+        process.env.NEXT_PUBLIC_GROQ_API_KEY = apiKey;
+        
+        // Continue with language detection
+        performLanguageDetection(apiKey)
+      }
+      
+      // Clear the pending action
+      setPendingAction(null)
+    }
+  }, [apiKey, pendingAction])
+  
   // Function to detect language
   const handleDetectLanguage = async () => {
     if (isDetectingLanguage) return
     
+    // Check if we have API key
+    if (!apiKey) {
+      setPendingAction({
+        type: 'detectLanguage'
+      })
+      setShowApiKeyModal(true)
+      return
+    }
+    
+    // We have API key, proceed
+    performLanguageDetection(apiKey)
+  }
+  
+  // Actual language detection function
+  const performLanguageDetection = async (currentApiKey: string) => {
+    setIsDetectingLanguage(true)
+    setError(null)
+    
     try {
-      setIsDetectingLanguage(true)
-      setError(null)
+      // Set the API key for this call
+      process.env.NEXT_PUBLIC_GROQ_API_KEY = currentApiKey;
       
       const result = await detectLanguage(bookContent)
       setLanguage(result)
       
-      
+
     } catch (err: any) {
-      setError(`Failed to detect language: ${err.message}`)
-      console.error('Language detection error:', err)
+      // Check if it's an authentication error
+      if (err.message?.includes('API key') || err.message?.includes('authentication') || err.message?.includes('unauthorized')) {
+        setError('Invalid API key. Please check your API key and try again.')
+        setApiKey(null) // Clear the invalid key
+      } else {
+        setError(`Failed to detect language: ${err.message}`)
+        console.error('Language detection error:', err)
+      }
     } finally {
       setIsDetectingLanguage(false)
     }
   }
-  
-  // Function to analyze a specific chapter
-  const analyzeChapter = async (chapterIndex: number, type: AnalysisType) => {
-    if (isLoading) return
-    
-    try {
-      // Check if we already have this analysis (either in state or cache)
-      if (
-        analysisData[chapterIndex] && 
-        analysisData[chapterIndex][type]
-      ) {
-        // Just show the existing analysis
-        setActiveChapter(chapterIndex)
-        setActiveAnalysis(type)
-        return
-      }
-      
-      // Check cache one more time
-      const cachedResult = getCachedAnalysis(bookId, chapterIndex, type)
-      if (cachedResult) {
-        setAnalysisData(prev => ({
-          ...prev,
-          [chapterIndex]: {
-            ...prev[chapterIndex],
-            [type]: cachedResult
-          }
-        }))
-        setActiveChapter(chapterIndex)
-        setActiveAnalysis(type)
-        return
-      }
-      
-      // Not in cache, need to run analysis
-      setIsLoading(true)
-      setError(null)
-      setAnalysisProgress(0)
-      
-      const chapterContent = chapters[chapterIndex].content
-      
-   
-      
-      // Run analysis with Groq
-      const result = await analyzeWithGroq(chapterContent, type)
-      
-      // Update the analysis data
-      setAnalysisData(prev => ({
-        ...prev,
-        [chapterIndex]: {
-          ...prev[chapterIndex],
-          [type]: result
-        }
-      }))
-      
-      // Cache the result
-      cacheAnalysis({
-        bookId,
-        chapterIndex,
-        analysisType: type,
-        result
-      })
-      
-      
-      setActiveChapter(chapterIndex)
-    } catch (err: any) {
-      setError(`Analysis failed: ${err.message || 'Unknown error'}`)
-      console.error('Analysis error:', err)
-      
-    } finally {
-      setIsLoading(false)
-      setAnalysisProgress(100)
-    }
-  }
-  
+
   // Function to analyze all chapters (for the current type)
   const analyzeAllChapters = async () => {
     if (isLoading || chapters.length === 0) return
@@ -245,6 +249,107 @@ const TextAnalysis = ({ bookId, bookTitle, bookContent }: AnalysisProps) => {
     }
   }
   
+  // Function to analyze a specific chapter
+  const handleAnalyzeChapter = async (chapterIndex: number, type: AnalysisType) => {
+    if (isLoading) return
+    
+    // Check if we already have analysis (either in state or cache)
+    if (
+      analysisData[chapterIndex] && 
+      analysisData[chapterIndex][type]
+    ) {
+      // Just show the existing analysis
+      setActiveChapter(chapterIndex)
+      setActiveAnalysis(type)
+      return
+    }
+    
+    // Check cache one more time
+    const cachedResult = getCachedAnalysis(bookId, chapterIndex, type)
+    if (cachedResult) {
+      setAnalysisData(prev => ({
+        ...prev,
+        [chapterIndex]: {
+          ...prev[chapterIndex],
+          [type]: cachedResult
+        }
+      }))
+      setActiveChapter(chapterIndex)
+      setActiveAnalysis(type)
+      return
+    }
+    
+    // Need to run analysis - check for API key
+    if (!apiKey) {
+      setPendingAction({
+        type: 'analyze',
+        chapterIndex,
+        analysisType: type
+      })
+      setShowApiKeyModal(true)
+      return
+    }
+    
+    // We have the API key, proceed with analysis
+    performAnalysis(chapterIndex, type, apiKey)
+  }
+  
+  // Actual analysis function
+  const performAnalysis = async (chapterIndex: number, type: AnalysisType, currentApiKey: string) => {
+    setIsLoading(true)
+    setError(null)
+    setAnalysisProgress(0)
+    
+    const chapterContent = chapters[chapterIndex].content
+    try {
+      // Set the API key for this call
+      process.env.NEXT_PUBLIC_GROQ_API_KEY = currentApiKey;
+      
+      // Run analysis with Groq
+      const result = await analyzeWithGroq(chapterContent, type)
+      
+      // Update the analysis data
+      setAnalysisData(prev => ({
+        ...prev,
+        [chapterIndex]: {
+          ...prev[chapterIndex],
+          [type]: result
+        }
+      }))
+      
+      // Cache the result
+      cacheAnalysis({
+        bookId,
+        chapterIndex,
+        analysisType: type,
+        result
+      })
+      
+            
+      setActiveChapter(chapterIndex)
+    } catch (err: any) {
+      // Check if it's an authentication error
+      if (err.message?.includes('API key') || err.message?.includes('authentication') || err.message?.includes('unauthorized')) {
+        setError('Invalid API key. Please check your API key and try again.')
+        setApiKey(null) // Clear the invalid key
+      } else {
+        setError(`Analysis failed: ${err.message || 'Unknown error'}`)
+        console.error('Analysis error:', err)
+        
+      }
+    } finally {
+      setIsLoading(false)
+      setAnalysisProgress(100)
+    }
+  }
+  
+  // Handle API key submission from modal
+  const handleApiKeySubmit = (key: string) => {
+    setApiKey(key)
+    
+
+  }
+  
   // Checks if a specific chapter has been analyzed
   const isChapterAnalyzed = (chapterIndex: number, type: AnalysisType) => {
     return !!(
@@ -276,183 +381,177 @@ const TextAnalysis = ({ bookId, bookTitle, bookContent }: AnalysisProps) => {
     document.body.appendChild(a)
     a.click()
     document.body.removeChild(a)
-    
+    URL.revokeObjectURL(url)
+
   }
   
   return (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-            <div>
-              <CardTitle className="text-xl">AI Analysis for "{bookTitle}"</CardTitle>
-              <CardDescription>
-                {chapters.length === 1 
-                  ? "1 chapter detected" 
-                  : `${chapters.length} chapters detected`}
-                
-                {language && (
-                  <Badge variant="outline" className="ml-2">
-                    {language.language}
-                  </Badge>
-                )}
-              </CardDescription>
-            </div>
-            
-            <div className="flex items-center space-x-2">
-              {!language && (
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={handleDetectLanguage}
-                  disabled={isDetectingLanguage}
-                >
-                  {isDetectingLanguage ? (
-                    <>
-                      <Loader2 className="mr-2 h-3 w-3 animate-spin" />
-                      Detecting
-                    </>
-                  ) : (
-                    <>
-                      <Globe className="mr-1 h-3 w-3" />
-                      Detect Language
-                    </>
+    <>
+      <div className="space-y-6">
+        <Card>
+          <CardHeader>
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+              <div>
+                <CardTitle className="text-xl">AI Analysis for "{bookTitle}"</CardTitle>
+                <CardDescription>
+                  {chapters.length === 1 
+                    ? "1 chapter detected" 
+                    : `${chapters.length} chapters detected`}
+                  
+                  {language && (
+                    <Badge variant="outline" className="ml-2">
+                      {language.language}
+                    </Badge>
                   )}
-                </Button>
-              )}
-              
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={exportAnalysis}
-                disabled={Object.keys(analysisData).length === 0}
-              >
-                <Download className="mr-1 h-3 w-3" />
-                Export Analysis
-              </Button>
-              
-              <Badge variant="secondary" className="flex items-center gap-1">
-                <Database className="h-3 w-3" />
-                {Object.values(analysisData).reduce((count, chapterData) => 
-                  count + Object.keys(chapterData).length, 0)} cached
-              </Badge>
-            </div>
-          </div>
-        </CardHeader>
-        
-        <CardContent>
-          {error && (
-            <Alert variant="destructive" className="mb-4">
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
-          
-          <Tabs 
-            value={activeAnalysis} 
-            onValueChange={(value) => setActiveAnalysis(value as AnalysisType)}
-          >
-            <TabsList className="grid grid-cols-4 mb-6">
-              <TabsTrigger value="characters" className="flex items-center">
-                <User className="mr-2 h-4 w-4" />
-                Characters
-              </TabsTrigger>
-              <TabsTrigger value="summary" className="flex items-center">
-                <Bookmark className="mr-2 h-4 w-4" />
-                Summary
-              </TabsTrigger>
-              <TabsTrigger value="sentiment" className="flex items-center">
-                <MessageSquare className="mr-2 h-4 w-4" />
-                Sentiment
-              </TabsTrigger>
-              <TabsTrigger value="themes" className="flex items-center">
-                <AlertCircle className="mr-2 h-4 w-4" />
-                Themes
-              </TabsTrigger>
-            </TabsList>
-            
-            {/* Chapter selector */}
-            <div className="mb-6">
-              <h3 className="text-sm font-medium mb-2 flex items-center">
-                <BookOpen className="mr-2 h-4 w-4" />
-                Select Chapter to Analyze
-              </h3>
-              
-              <div className="rounded-md p-2 max-h-60 overflow-y-auto">
-                <Accordion type="single" collapsible>
-                  {chapters.map((chapter, index) => (
-                    <AccordionItem key={index} value={`chapter-${index}`}>
-                      <AccordionTrigger className="text-sm py-2 hover:no-underline">
-                        <div className="flex items-center">
-                          <span className="mr-2">{chapter.title}</span>
-                          {isChapterAnalyzed(index, activeAnalysis) && (
-                            <Badge variant="secondary" className="text-xs">Analyzed</Badge>
-                          )}
-                        </div>
-                      </AccordionTrigger>
-                      <AccordionContent>
-                        <div className="text-xs text-gray-600 mb-2">
-                          {getChapterPreview(chapter.content)}
-                        </div>
-                        <Button 
-                          size="sm" 
-                          variant={activeChapter === index ? "default" : "outline"}
-                          onClick={() => {
-                            if (isChapterAnalyzed(index, activeAnalysis)) {
-                              // Just switch to this chapter
-                              setActiveChapter(index)
-                            } else {
-                              // Run analysis for this chapter
-                              analyzeChapter(index, activeAnalysis)
-                            }
-                          }}
-                          disabled={isLoading}
-                        >
-                          {isChapterAnalyzed(index, activeAnalysis) ? 'View Analysis' : 'Analyze Chapter'}
-                        </Button>
-                      </AccordionContent>
-                    </AccordionItem>
-                  ))}
-                </Accordion>
+                  
+                  {apiKey ? (
+                    <Badge variant="outline" className="ml-2 text-green-700 border-green-200">
+                      <KeyRound className="h-3 w-3 mr-1" />
+                      API Key Set
+                    </Badge>
+                  ) : (
+                    <Badge variant="outline" className="ml-2 text-amber-700 border-amber-200">
+                      <Lock className="h-3 w-3 mr-1" />
+                      API Key Required
+                    </Badge>
+                  )}
+                </CardDescription>
               </div>
               
-              <div className="mt-2 flex justify-between">
-                <Button 
-                  variant="outline"
-                  size="sm"
-                  onClick={analyzeAllChapters}
-                  disabled={isLoading || chapters.length === 0}
-                >
-                  {isLoading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Analyzing...
-                    </>
-                  ) : (
-                    'Analyze All Chapters'
-                  )}
-                </Button>
-                
-                {analysisData && Object.keys(analysisData).length > 0 && (
+              <div className="flex items-center space-x-2">
+                {!language && (
                   <Button 
                     variant="outline" 
-                    size="sm"
-                    onClick={exportAnalysis}
+                    size="sm" 
+                    onClick={handleDetectLanguage}
+                    disabled={isDetectingLanguage}
                   >
-                    <Download className="mr-2 h-4 w-4" />
-                    Export Analysis
+                    {isDetectingLanguage ? (
+                      <>
+                        <Loader2 className="mr-2 h-3 w-3 animate-spin" />
+                        Detecting
+                      </>
+                    ) : (
+                      <>
+                        <Globe className="mr-1 h-3 w-3" />
+                        Detect Language
+                      </>
+                    )}
                   </Button>
                 )}
-            </div>
-            
-            {isLoading && (
-              <div className="mt-2 mb-6">
-                <Progress value={analysisProgress} className="h-2" />
-                <p className="text-xs text-gray-500 mt-1">
-                  Analyzing with Groq AI...
-                </p>
+                
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={exportAnalysis}
+                  disabled={Object.keys(analysisData).length === 0}
+                >
+                  <Download className="mr-1 h-3 w-3" />
+                  Export Analysis
+                </Button>
+                
+                <Badge variant="secondary" className="flex items-center gap-1">
+                  <Database className="h-3 w-3" />
+                  {Object.values(analysisData).reduce((count, chapterData) => 
+                    count + Object.keys(chapterData).length, 0)} cached
+                </Badge>
               </div>
-            )}
             </div>
+          </CardHeader>
+          
+          <CardContent>
+            {error && (
+              <Alert variant="destructive" className="mb-4">
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
+            
+            <Tabs 
+              value={activeAnalysis} 
+              onValueChange={(value) => setActiveAnalysis(value as AnalysisType)}
+            >
+              <TabsList className="grid grid-cols-4 mb-6">
+                <TabsTrigger value="characters" className="flex items-center">
+                  <User className="mr-2 h-4 w-4" />
+                  Characters
+                </TabsTrigger>
+                <TabsTrigger value="summary" className="flex items-center">
+                  <Bookmark className="mr-2 h-4 w-4" />
+                  Summary
+                </TabsTrigger>
+                <TabsTrigger value="sentiment" className="flex items-center">
+                  <MessageSquare className="mr-2 h-4 w-4" />
+                  Sentiment
+                </TabsTrigger>
+                <TabsTrigger value="themes" className="flex items-center">
+                  <AlertCircle className="mr-2 h-4 w-4" />
+                  Themes
+                </TabsTrigger>
+              </TabsList>
+              
+              {/* Chapter selector */}
+              <div className="mb-6">
+                <h3 className="text-sm font-medium mb-2 flex items-center">
+                  <BookOpen className="mr-2 h-4 w-4" />
+                  Select Chapter to Analyze
+                </h3>
+                
+              <div className="rounded-md p-2 max-h-60 overflow-y-auto">
+                  <Accordion type="single" collapsible>
+                    {chapters.map((chapter, index) => (
+                      <AccordionItem key={index} value={`chapter-${index}`}>
+                        <AccordionTrigger className="text-sm py-2 hover:no-underline">
+                          <div className="flex items-center">
+                            <span className="mr-2">{chapter.title}</span>
+                            {isChapterAnalyzed(index, activeAnalysis) && (
+                              <Badge variant="secondary" className="text-xs">Analyzed</Badge>
+                            )}
+                          </div>
+                        </AccordionTrigger>
+                        <AccordionContent>
+                          <div className="text-xs text-gray-600 mb-2">
+                            {getChapterPreview(chapter.content)}
+                          </div>
+                          <Button 
+                            size="sm" 
+                            variant={activeChapter === index ? "default" : "outline"}
+                            onClick={() => handleAnalyzeChapter(index, activeAnalysis)}
+                            disabled={isLoading}
+                          >
+                            {isChapterAnalyzed(index, activeAnalysis) ? 'View Analysis' : 'Analyze Chapter'}
+                          </Button>
+                        </AccordionContent>
+                      </AccordionItem>
+                    ))}
+                  </Accordion>
+                </div>
+              </div>
+              {!isLoading &&
+                         <Button 
+                         variant="outline"
+                         size="sm"
+                         onClick={analyzeAllChapters}
+                         disabled={isLoading || chapters.length === 0}
+                       >
+                         {isLoading ? (
+                           <>
+                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                             Analyzing...
+                           </>
+                         ) : (
+                           'Analyze All Chapters'
+                         )}
+                       </Button>
+
+              }
+              {isLoading && (
+                <div className="mt-2 mb-6">
+                  <Progress value={analysisProgress} className="h-2" />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Analyzing with Groq AI...
+                  </p>
+                </div>
+              )}
             
             {/* Characters Analysis */}
             <TabsContent value="characters">
@@ -624,10 +723,20 @@ const TextAnalysis = ({ bookId, bookTitle, bookContent }: AnalysisProps) => {
                 </div>
               )}
             </TabsContent>
-          </Tabs>
-        </CardContent>
-      </Card>
-    </div>
+            
+            </Tabs>
+          </CardContent>
+        </Card>
+      </div>
+      
+      {/* API Key Modal */}
+      <ApiKeyModal
+        isOpen={showApiKeyModal}
+        onClose={() => setShowApiKeyModal(false)}
+        onSubmit={handleApiKeySubmit}
+        serviceName={TEXT_ANALYSIS_SERVICE}
+      />
+    </>
   )
 }
 

@@ -3,7 +3,11 @@ import { truncateForAnalysis, estimateTokenCount } from './chapterUtils';
 import { AnalysisType } from '@/types';
 import { rateLimitManager, withRateLimit } from './rateLimitManager';
 
-const GROQ_API_KEY = process.env.NEXT_PUBLIC_GROQ_API_KEY || '';
+// Get API key from environment variable - will be set by TextAnalysis component
+const getGroqApiKey = (): string => {
+  return process.env.NEXT_PUBLIC_GROQ_API_KEY || '';
+};
+
 const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
 
 // Maximum tokens per model
@@ -24,17 +28,40 @@ interface GroqRequestParams {
  * Makes a request to the Groq API
  */
 async function makeGroqRequest(params: GroqRequestParams) {
+
+  
+  // Get API key at request time
+  const apiKey = getGroqApiKey();
+  
+  // Validate API key is present
+  if (!apiKey || apiKey.trim() === '') {
+    throw new Error('API key is required for text analysis');
+  }
   
   // Use withRateLimit to handle rate limiting
   return withRateLimit(async () => {
-    const response = await axios.post(GROQ_API_URL, params, {
-      headers: {
-        'Authorization': `Bearer ${GROQ_API_KEY}`,
-        'Content-Type': 'application/json'
+    try {
+      const response = await axios.post(GROQ_API_URL, params, {
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      return response.data.choices[0].message.content;
+    } catch (error: any) {
+      // Provide more helpful error messages for common issues
+      if (error.response) {
+        if (error.response.status === 401) {
+          throw new Error('Invalid API key. Please check your credentials and try again.');
+        } else if (error.response.status === 429) {
+          throw new Error('Rate limit exceeded. Please wait a moment and try again.');
+        } else {
+          throw new Error(`API error: ${error.response.data.message || error.response.statusText}`);
+        }
       }
-    });
-    
-    return response.data.choices[0].message.content;
+      throw error; // Re-throw if not a response error
+    }
   }, 'groq');
 }
 
@@ -187,11 +214,12 @@ export async function analyzeWithGroq(
   };
   
   const response = await makeGroqRequest(params);
+  
   // Try to parse JSON if expected
   if (analysisType === 'characters' || analysisType === 'themes' || analysisType === 'sentiment') {
     try {
       // Find JSON in the response (if there's any text around it)
-    const jsonMatch = response.match(/(\[|\{).*(\]|\})/s);
+      const jsonMatch = response.match(/(\[|\{).*(\]|\})/s);
     let jsonStr = jsonMatch ? jsonMatch[0] : response;
     try {
       return JSON.parse(jsonStr);
