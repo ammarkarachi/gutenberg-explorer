@@ -35,7 +35,6 @@ export async function getBookRecords(): Promise<BookRecord[]> {
     return bookRecords;
   }
   const tsv = await fetchAndCacheTsv();
-  console.log(tsv)
   if (!tsv) {
     throw new Error('Failed to fetch TSV data');
   }
@@ -99,9 +98,8 @@ export async function fetchBookMetadata(bookId: string) {
     const metadataUrl = `https://gutendex.com/books/${bookId}`;
     const response = await axios.get<BookMetadata>(metadataUrl);
     const data = response.data
-    console.log(data)
-    
     return {
+      id: bookId,
       title: data.title,
       author: data.authors.map(author => author.name).join(', '),
       language: data.languages.join(', '),
@@ -114,5 +112,3 @@ export async function fetchBookMetadata(bookId: string) {
     throw new Error(`Failed to fetch book metadata for ID ${error}`);
   }
 }
-
-

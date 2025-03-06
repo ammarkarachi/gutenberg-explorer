@@ -1,21 +1,14 @@
 "use client"
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, use } from 'react'
 import Link from 'next/link'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Book, Clock, X, Search } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
+import { useBookCacheStore } from '@/lib/bookCacheStore'
 
-// This would be replaced with actual data from storage
-const mockSavedBooks = [
-  { id: '1342', title: 'Pride and Prejudice', author: 'Jane Austen', lastAccessed: new Date(Date.now() - 1000 * 60 * 60 * 2) },
-  { id: '84', title: 'Frankenstein', author: 'Mary Wollstonecraft Shelley', lastAccessed: new Date(Date.now() - 1000 * 60 * 60 * 24) },
-  { id: '1661', title: 'The Adventures of Sherlock Holmes', author: 'Arthur Conan Doyle', lastAccessed: new Date(Date.now() - 1000 * 60 * 60 * 24 * 2) },
-  { id: '1952', title: 'The Yellow Wallpaper', author: 'Charlotte Perkins Gilman', lastAccessed: new Date(Date.now() - 1000 * 60 * 60 * 24 * 3) },
-  { id: '1400', title: 'Great Expectations', author: 'Charles Dickens', lastAccessed: new Date(Date.now() - 1000 * 60 * 60 * 24 * 4) },
-]
 
 export default function SavedBooksPage() {
   const [savedBooks, setSavedBooks] = useState<Array<{
@@ -24,15 +17,21 @@ export default function SavedBooksPage() {
     author: string;
     lastAccessed: Date;
   }>>([])
-  
+  const {
+    cachedBooks,
+    removeBookFromCache
+  } = useBookCacheStore()
   useEffect(() => {
-    // In a real implementation, we would fetch from local storage or an API
-    setSavedBooks(mockSavedBooks)
+    console.log(cachedBooks)
+    setSavedBooks(Object.values(cachedBooks).map(book => ({
+      ...book,
+      lastAccessed: new Date(book.lastAccessed)
+    })))
   }, [])
   
   const removeBook = (id: string) => {
-    // In a real implementation, we would also remove from storage
     setSavedBooks(savedBooks.filter(book => book.id !== id))
+    removeBookFromCache(id)
   }
   
   return (

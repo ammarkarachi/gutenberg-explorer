@@ -5,47 +5,25 @@ import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Separator } from '@/components/ui/separator'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Book, Sparkles, Clock, ChevronRight, Search } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
+import { useBookCacheStore } from '@/lib/bookCacheStore'
+import { Analysis } from '@/types'
+import { convertNumberToOrdinal } from '@/lib/utils'
 
-// Mock data - would be replaced with actual saved analyses
-const mockAnalyses = [
-  { 
-    id: '1342-analysis', 
-    bookId: '1342',
-    bookTitle: 'Pride and Prejudice',
-    author: 'Jane Austen',
-    type: 'Full Analysis',
-    date: new Date(Date.now() - 1000 * 60 * 60 * 24 * 2)
-  },
-  { 
-    id: '84-characters', 
-    bookId: '84',
-    bookTitle: 'Frankenstein',
-    author: 'Mary Wollstonecraft Shelley',
-    type: 'Character Analysis',
-    date: new Date(Date.now() - 1000 * 60 * 60 * 24 * 3)
-  },
-  { 
-    id: '1661-summary', 
-    bookId: '1661',
-    bookTitle: 'The Adventures of Sherlock Holmes',
-    author: 'Arthur Conan Doyle',
-    type: 'Summary',
-    date: new Date(Date.now() - 1000 * 60 * 60 * 24 * 5)
-  },
-]
 
+function converNumberTo() {
+
+}
 export default function AnalysisPage() {
-  const [analyses, setAnalyses] = useState<any[]>([])
+  const [analyses, setAnalyses] = useState<Analysis[]>([])
   const [searchTerm, setSearchTerm] = useState('')
   const router = useRouter()
-  
+  const {
+    getSavedAnalyses
+  } = useBookCacheStore()
   useEffect(() => {
-    // In a real implementation, we would fetch from storage or an API
-    setAnalyses(mockAnalyses)
+    setAnalyses(getSavedAnalyses())
   }, [])
   
   const filteredAnalyses = analyses.filter(
@@ -117,10 +95,10 @@ export default function AnalysisPage() {
                         <Sparkles className="h-5 w-5" />
                       </div>
                       <div>
-                        <h3 className="font-medium">{analysis.bookTitle}</h3>
+                        <h3 className="font-medium">{`${analysis.bookTitle} - ${convertNumberToOrdinal((analysis.chapterIndex ?? 0) + 1)} Chapter`}</h3>
                         <p className="text-sm text-gray-600">{analysis.author}</p>
                         <div className="flex items-center mt-2">
-                          <span className="text-xs px-2 py-1 bg-gray-100 rounded-full">
+                          <span className="text-xs px-2 py-1 rounded-full">
                             {analysis.type}
                           </span>
                           <span className="text-xs text-gray-500 ml-2 flex items-center">

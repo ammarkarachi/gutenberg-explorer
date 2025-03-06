@@ -31,7 +31,6 @@ const BookDisplay = ({
   onAnalyze: () => void
 }) => {
   const [expandedContent, setExpandedContent] = useState(false)
-  console.log(book)
   const contentPreview = expandedContent 
     ? book.content 
     : book.content.slice(0, 1000) + '...'

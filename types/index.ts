@@ -34,6 +34,7 @@ export interface Book {
     bookTitle: string
     author: string
     type: AnalysisType
+    chapterIndex?: number
     date: Date
     results: CharacterAnalysis | string | SentimentAnalysis | Theme[]
   }
@@ -48,5 +49,5 @@ export interface Book {
     formats: { [key: string]: string }
     download_count: number
   }
-  
+
   export interface CharacterAnalysis extends Array<Character> {}

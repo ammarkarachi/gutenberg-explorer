@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { Book, Clock, ChevronRight } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { formatDistanceToNow } from 'date-fns'
+import { useBookCacheStore } from '@/lib/bookCacheStore'
 
 // This would be replaced with actual data from storage
 const mockRecentBooks = [
@@ -20,10 +21,15 @@ const BookList = () => {
     author: string;
     lastAccessed: Date;
   }>>([])
-
+  const {
+    getRecentBooks
+  } = useBookCacheStore()
   useEffect(() => {
-    // In a real implementation, we would fetch from local storage or an API
-    setRecentBooks(mockRecentBooks)
+    const books = getRecentBooks()
+    setRecentBooks(books.map(book => ({
+      ...book,
+      lastAccessed: new Date(book.lastAccessed)
+    })))
   }, [])
 
   if (recentBooks.length === 0) {

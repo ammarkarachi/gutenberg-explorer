@@ -11,19 +11,19 @@ import {
   MessageSquare, 
   Download,
   BookOpen,
-  ChevronDown,
-  ChevronUp,
   Globe,
-  Loader2
+  Loader2,
+  Database
 } from 'lucide-react'
 import { Skeleton } from "@/components/ui/skeleton"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { Progress } from "@/components/ui/progress"
 import { AnalysisType } from '@/types'
 import { splitBookIntoChapters, getChapterPreview } from '@/lib/chapterUtils'
-import { analyzeWithGroq, detectLanguage } from '@/lib/groqService'
+import { analyzeWithGroq, detectLanguage, getGroqRateLimits } from '@/lib/groqService'
 import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { useBookCacheStore } from '@/lib/bookCacheStore'
 
 type AnalysisProps = {
   bookId: string
@@ -41,6 +41,14 @@ const TextAnalysis = ({ bookId, bookTitle, bookContent }: AnalysisProps) => {
   const [analysisProgress, setAnalysisProgress] = useState(0)
   const [error, setError] = useState<string | null>(null)
   
+  // Get cache functions
+  const { 
+    getCachedAnalysis, 
+    cacheAnalysis, 
+    saveProgress, 
+    getProgress 
+  } = useBookCacheStore()
+  
   // Store analysis results by chapter and type
   const [analysisData, setAnalysisData] = useState<{
     [chapterIndex: number]: {
@@ -56,6 +64,52 @@ const TextAnalysis = ({ bookId, bookTitle, bookContent }: AnalysisProps) => {
     }
   }, [bookContent])
   
+  // Load cached analyses and restore progress
+  useEffect(() => {
+    // Initialize analyses from cache
+    const newAnalysisData = { ...analysisData }
+    
+    // Go through all chapters and analysis types to check cache
+    for (let chapterIndex = 0; chapterIndex < chapters.length; chapterIndex++) {
+      for (const type of ['characters', 'summary', 'sentiment', 'themes'] as AnalysisType[]) {
+        const cachedResult = getCachedAnalysis(bookId, chapterIndex, type)
+        if (cachedResult) {
+          if (!newAnalysisData[chapterIndex]) {
+            newAnalysisData[chapterIndex] = {}
+          }
+          newAnalysisData[chapterIndex][type] = cachedResult
+        }
+      }
+    }
+    
+    // Set analysis data if we found cached results
+    if (Object.keys(newAnalysisData).length > 0) {
+      setAnalysisData(newAnalysisData)
+    }
+    
+    // Restore progress if available
+    const progress = getProgress(bookId)
+    if (progress) {
+      if (progress.currentChapter !== undefined && chapters[progress.currentChapter]) {
+        setActiveChapter(progress.currentChapter)
+      }
+      
+      if (progress.lastAnalysisType) {
+        setActiveAnalysis(progress.lastAnalysisType)
+      }
+    }
+  }, [bookId, chapters.length, getCachedAnalysis, getProgress])
+  
+  // Save progress when chapter or analysis type changes
+  useEffect(() => {
+    if (bookId) {
+      saveProgress(bookId, {
+        currentChapter: activeChapter,
+        lastAnalysisType: activeAnalysis
+      })
+    }
+  }, [bookId, activeChapter, activeAnalysis, saveProgress])
+  
   // Function to detect language
   const handleDetectLanguage = async () => {
     if (isDetectingLanguage) return
@@ -66,8 +120,10 @@ const TextAnalysis = ({ bookId, bookTitle, bookContent }: AnalysisProps) => {
       
       const result = await detectLanguage(bookContent)
       setLanguage(result)
-    } catch (err) {
-      setError('Failed to detect language. Please try again.')
+      
+      
+    } catch (err: any) {
+      setError(`Failed to detect language: ${err.message}`)
       console.error('Language detection error:', err)
     } finally {
       setIsDetectingLanguage(false)
@@ -79,11 +135,7 @@ const TextAnalysis = ({ bookId, bookTitle, bookContent }: AnalysisProps) => {
     if (isLoading) return
     
     try {
-      setIsLoading(true)
-      setError(null)
-      setAnalysisProgress(0)
-      
-      // Check if we already have this analysis
+      // Check if we already have this analysis (either in state or cache)
       if (
         analysisData[chapterIndex] && 
         analysisData[chapterIndex][type]
@@ -91,11 +143,32 @@ const TextAnalysis = ({ bookId, bookTitle, bookContent }: AnalysisProps) => {
         // Just show the existing analysis
         setActiveChapter(chapterIndex)
         setActiveAnalysis(type)
-        setIsLoading(false)
         return
       }
       
+      // Check cache one more time
+      const cachedResult = getCachedAnalysis(bookId, chapterIndex, type)
+      if (cachedResult) {
+        setAnalysisData(prev => ({
+          ...prev,
+          [chapterIndex]: {
+            ...prev[chapterIndex],
+            [type]: cachedResult
+          }
+        }))
+        setActiveChapter(chapterIndex)
+        setActiveAnalysis(type)
+        return
+      }
+      
+      // Not in cache, need to run analysis
+      setIsLoading(true)
+      setError(null)
+      setAnalysisProgress(0)
+      
       const chapterContent = chapters[chapterIndex].content
+      
+   
       
       // Run analysis with Groq
       const result = await analyzeWithGroq(chapterContent, type)
@@ -109,10 +182,20 @@ const TextAnalysis = ({ bookId, bookTitle, bookContent }: AnalysisProps) => {
         }
       }))
       
+      // Cache the result
+      cacheAnalysis({
+        bookId,
+        chapterIndex,
+        analysisType: type,
+        result
+      })
+      
+      
       setActiveChapter(chapterIndex)
     } catch (err: any) {
       setError(`Analysis failed: ${err.message || 'Unknown error'}`)
       console.error('Analysis error:', err)
+      
     } finally {
       setIsLoading(false)
       setAnalysisProgress(100)
@@ -193,47 +276,68 @@ const TextAnalysis = ({ bookId, bookTitle, bookContent }: AnalysisProps) => {
     document.body.appendChild(a)
     a.click()
     document.body.removeChild(a)
-    URL.revokeObjectURL(url)
+    
   }
   
   return (
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle className="text-xl">AI Analysis for "{bookTitle}"</CardTitle>
-          <CardDescription>
-            {chapters.length === 1 
-              ? "1 chapter detected" 
-              : `${chapters.length} chapters detected`}
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div>
+              <CardTitle className="text-xl">AI Analysis for "{bookTitle}"</CardTitle>
+              <CardDescription>
+                {chapters.length === 1 
+                  ? "1 chapter detected" 
+                  : `${chapters.length} chapters detected`}
+                
+                {language && (
+                  <Badge variant="outline" className="ml-2">
+                    {language.language}
+                  </Badge>
+                )}
+              </CardDescription>
+            </div>
             
-            {language && (
-              <span  className="ml-2">
-                {language.language}
-              </span>
-            )}
-            
-            {!language && (
+            <div className="flex items-center space-x-2">
+              {!language && (
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={handleDetectLanguage}
+                  disabled={isDetectingLanguage}
+                >
+                  {isDetectingLanguage ? (
+                    <>
+                      <Loader2 className="mr-2 h-3 w-3 animate-spin" />
+                      Detecting
+                    </>
+                  ) : (
+                    <>
+                      <Globe className="mr-1 h-3 w-3" />
+                      Detect Language
+                    </>
+                  )}
+                </Button>
+              )}
+              
               <Button 
                 variant="outline" 
-                size="sm" 
-                className="ml-2" 
-                onClick={handleDetectLanguage}
-                disabled={isDetectingLanguage}
+                size="sm"
+                onClick={exportAnalysis}
+                disabled={Object.keys(analysisData).length === 0}
               >
-                {isDetectingLanguage ? (
-                  <>
-                    <Loader2 className="mr-2 h-3 w-3 animate-spin" />
-                    Detecting
-                  </>
-                ) : (
-                  <>
-                    <Globe className="mr-1 h-3 w-3" />
-                    Detect Language
-                  </>
-                )}
+                <Download className="mr-1 h-3 w-3" />
+                Export Analysis
               </Button>
-            )}
-          </CardDescription>
+              
+              <Badge variant="secondary" className="flex items-center gap-1">
+                <Database className="h-3 w-3" />
+                {Object.values(analysisData).reduce((count, chapterData) => 
+                  count + Object.keys(chapterData).length, 0)} cached
+              </Badge>
+            </div>
+          </div>
         </CardHeader>
         
         <CardContent>
@@ -273,8 +377,8 @@ const TextAnalysis = ({ bookId, bookTitle, bookContent }: AnalysisProps) => {
                 Select Chapter to Analyze
               </h3>
               
-              <div>
-                <Accordion type="single" collapsible  className="rounded-md p-2 max-h-60 overflow-y-auto">
+              <div className="rounded-md p-2 max-h-60 overflow-y-auto">
+                <Accordion type="single" collapsible>
                   {chapters.map((chapter, index) => (
                     <AccordionItem key={index} value={`chapter-${index}`}>
                       <AccordionTrigger className="text-sm py-2 hover:no-underline">
@@ -286,7 +390,7 @@ const TextAnalysis = ({ bookId, bookTitle, bookContent }: AnalysisProps) => {
                         </div>
                       </AccordionTrigger>
                       <AccordionContent>
-                        <div className="text-xs mb-2">
+                        <div className="text-xs text-gray-600 mb-2">
                           {getChapterPreview(chapter.content)}
                         </div>
                         <Button 
@@ -338,16 +442,16 @@ const TextAnalysis = ({ bookId, bookTitle, bookContent }: AnalysisProps) => {
                     Export Analysis
                   </Button>
                 )}
+            </div>
+            
+            {isLoading && (
+              <div className="mt-2 mb-6">
+                <Progress value={analysisProgress} className="h-2" />
+                <p className="text-xs text-gray-500 mt-1">
+                  Analyzing with Groq AI...
+                </p>
               </div>
-              
-              {isLoading && (
-                <div className="mt-2">
-                  <Progress value={analysisProgress} className="h-2" />
-                  <p className="text-xs text-gray-500 mt-1">
-                    Analyzing with Groq AI...
-                  </p>
-                </div>
-              )}
+            )}
             </div>
             
             {/* Characters Analysis */}
