@@ -176,6 +176,41 @@ ${truncatedContent}
 
 Format your response as a JSON array of objects, each with "theme" and "description" fields. Identify 3-5 prominent themes. Do not include any explanatory text outside the JSON array.`;
 
+    case 'character-graph':
+      return `Extract Character Relationships for Visualization
+Analyze this book and create a JSON character network with this structure:
+{
+  "nodes": [
+    {
+      "id": "character_name",
+      "name": "Character Full Name",
+      "group": "faction",
+      "importance": 1-10
+    }
+  ],
+  "links": [
+    {
+      "source": "character1_id",
+      "target": "character2_id",
+      "type": "relationship_type",
+      "strength": 1-10,
+      "sentiment": -5 to 5
+    }
+  ]
+}
+Instructions:
+1. Include all named characters and important unnamed ones
+2. Rate character importance (1-10)
+3. Group characters by faction/family where possible
+4. For relationships, include:
+   - Type (family, friend, enemy, etc.)
+   - Strength (1-10)
+   - Sentiment (-5=negative, 5=positive)
+5. Focus on significant relationships that drive the narrative
+6. Use lowercase IDs without spaces
+7. Do not include any explanatory text outside the JSON array.
+Book content.:
+${truncatedContent}`;
     default:
       return '';
   }
@@ -216,10 +251,10 @@ export async function analyzeWithGroq(
   const response = await makeGroqRequest(params);
   
   // Try to parse JSON if expected
-  if (analysisType === 'characters' || analysisType === 'themes' || analysisType === 'sentiment') {
+  if (analysisType === 'characters' || analysisType === 'themes' || analysisType === 'sentiment' || analysisType === 'character-graph') {
     try {
       // Find JSON in the response (if there's any text around it)
-      const jsonMatch = response.match(/(\[|\{).*(\]|\})/s);
+    const jsonMatch = response.match(/(\[|\{).*(\]|\})/s);
     let jsonStr = jsonMatch ? jsonMatch[0] : response;
     try {
       return JSON.parse(jsonStr);

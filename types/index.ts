@@ -7,7 +7,7 @@ export interface Book {
     lastAccessed?: Date
   }
   
-  export type AnalysisType = 'characters' | 'summary' | 'sentiment' | 'themes'
+  export type AnalysisType = 'characters' | 'summary' | 'sentiment' | 'themes' | 'character-graph'
   
   export interface Character {
     name: string
@@ -38,6 +38,7 @@ export interface Book {
     date: Date
     results: CharacterAnalysis | string | SentimentAnalysis | Theme[]
   }
+
   export interface BookMetadata {
     title: string
     authors: { name: string; birth_year: number; death_year: number }[]
@@ -57,5 +58,25 @@ export interface Book {
     language: string;
     text_files: string[];
   };
+
+  export type Graph = {
+    nodes: CharacterNode[]
+    links: Link[]
+  }
+
+  export type CharacterNode = {
+    id: string
+    name: string
+    group: string
+    importance: number
+  }
+
+  export type Link = {
+    source: string
+    target: string
+    type: string
+    strength: number
+    sentiment: number
+  }
 
   export interface CharacterAnalysis extends Array<Character> {}
