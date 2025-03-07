@@ -9,7 +9,8 @@ const getGroqApiKey = (): string => {
 };
 
 const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
-
+const LARGE_MODEL = process.env.GROQ_LARGE_MODEL || 'llama-3.3-70b-versatile'
+const SMALL_MODEL = process.env.GROQ_SMALL_MODEL ||'llama3-8b-8192'
 // Maximum tokens per model
 const MODEL_TOKEN_LIMITS = 8192
 
@@ -222,7 +223,7 @@ ${truncatedContent}`;
 export async function analyzeWithGroq(
   chapterContent: string, 
   analysisType: AnalysisType,
-  modelName: string = 'llama3-8b-8192'  // Default model
+  modelName: string = LARGE_MODEL  // Default model
 ): Promise<any> {
   const prompt = getAnalysisPrompt(chapterContent, analysisType);
   
@@ -309,7 +310,7 @@ export async function detectLanguage(text: string): Promise<{ language: string; 
   }
   
   const params: GroqRequestParams = {
-    model: 'llama3-70b-8192', // Can use a smaller model for language detection
+    model: SMALL_MODEL, // Can use a smaller model for language detection
     messages: [
       {
         role: 'system',
