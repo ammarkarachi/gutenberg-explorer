@@ -1,3 +1,4 @@
+import { AnalysisType } from '@/types';
 import { compressTextForAnalysis } from './textCompressionUtils';
 
 /**
@@ -110,7 +111,7 @@ export function getChapterPreview(chapterContent: string, maxLength: number = 20
  * 
  * This enhanced version uses smart compression based on analysis type
  */
-export function truncateForAnalysis(text: string, analysisType: string = 'default', maxLength: number = 4000): string {
+export function truncateForAnalysis(text: string, analysisType: AnalysisType, maxLength: number = 4000): string {
   // First apply smart compression based on analysis type
   const compressed = compressTextForAnalysis(text, analysisType, maxLength);
   
