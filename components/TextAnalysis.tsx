@@ -51,7 +51,7 @@ const TextAnalysis = ({ bookId, bookTitle, bookContent }: AnalysisProps) => {
   const [apiKey, setApiKey] = useState<string | null>(null)
   const [showApiKeyModal, setShowApiKeyModal] = useState(false)
   const [pendingAction, setPendingAction] = useState<{
-    type: 'analyze' | 'detectLanguage';
+    type: 'analyze' | 'detectLanguage' | 'analyze-all';
     chapterIndex?: number;
     analysisType?: AnalysisType;
   } | null>(null)
@@ -162,11 +162,12 @@ const TextAnalysis = ({ bookId, bookTitle, bookContent }: AnalysisProps) => {
   // When API key is set, complete any pending action
   useEffect(() => {
     if (apiKey && pendingAction) {
+      process.env.NEXT_PUBLIC_GROQ_API_KEY = apiKey;
+
       if (pendingAction.type === 'analyze' && 
           pendingAction.chapterIndex !== undefined && 
           pendingAction.analysisType) {
         // Set environment variable for the API call
-        process.env.NEXT_PUBLIC_GROQ_API_KEY = apiKey;
         
         // Continue with analysis
         performAnalysis(
@@ -175,11 +176,11 @@ const TextAnalysis = ({ bookId, bookTitle, bookContent }: AnalysisProps) => {
           apiKey
         )
       } else if (pendingAction.type === 'detectLanguage') {
-        // Set environment variable for the API call
-        process.env.NEXT_PUBLIC_GROQ_API_KEY = apiKey;
-        
         // Continue with language detection
         performLanguageDetection(apiKey)
+      } else if (pendingAction.type === 'analyze-all') {
+        process.env.NEXT_PUBLIC_GROQ_API_KEY = apiKey
+        analyzeAllChapters()
       }
       
       // Clear the pending action
@@ -213,6 +214,16 @@ const TextAnalysis = ({ bookId, bookTitle, bookContent }: AnalysisProps) => {
     try {
       setIsLoading(true)
       setError(null)
+
+      if (!apiKey) {
+        setPendingAction({
+          type: 'analyze-all',
+          chapterIndex: -1,
+          analysisType: activeAnalysis
+        })
+        setShowApiKeyModal(true)
+        return
+      }
       
       for (let i = 0; i < chapters.length; i++) {
         // Update progress
@@ -220,24 +231,13 @@ const TextAnalysis = ({ bookId, bookTitle, bookContent }: AnalysisProps) => {
         
         // Skip if we already have this analysis
         if (
-          analysisData[i] && 
-          analysisData[i][activeAnalysis]
+          checkExistingChapterAnalysis(i, activeAnalysis)
         ) {
           continue
         }
         
-        // Run analysis
-        await new Promise(resolve => setTimeout(resolve, 3000))
-        const result = await handleAnalyzeChapter(i, activeAnalysis)
+        await performAnalysis(i, activeAnalysis, apiKey, false)
         
-        // Update the analysis data
-        setAnalysisData(prev => ({
-          ...prev,
-          [i]: {
-            ...prev[i],
-            [activeAnalysis]: result
-          }
-        }))
       }
       
       setAnalysisProgress(100)
@@ -249,11 +249,8 @@ const TextAnalysis = ({ bookId, bookTitle, bookContent }: AnalysisProps) => {
     }
   }
   
-  // Function to analyze a specific chapter
-  const handleAnalyzeChapter = async (chapterIndex: number, type: AnalysisType) => {
-    if (isLoading) return
-    
-    // Check if we already have analysis (either in state or cache)
+  // Check if we already have analysis (either in state or cache)
+  const checkExistingChapterAnalysis = (chapterIndex: number, type: AnalysisType) => {
     if (
       analysisData[chapterIndex] && 
       analysisData[chapterIndex][type]
@@ -261,7 +258,7 @@ const TextAnalysis = ({ bookId, bookTitle, bookContent }: AnalysisProps) => {
       // Just show the existing analysis
       setActiveChapter(chapterIndex)
       setActiveAnalysis(type)
-      return
+      return true
     }
     
     // Check cache one more time
@@ -276,9 +273,19 @@ const TextAnalysis = ({ bookId, bookTitle, bookContent }: AnalysisProps) => {
       }))
       setActiveChapter(chapterIndex)
       setActiveAnalysis(type)
+      return true
+    }
+    return false
+  }
+  
+  // Function to analyze a specific chapter
+  const handleAnalyzeChapter = async (chapterIndex: number, type: AnalysisType) => {
+    if (isLoading) return
+    
+    
+    if (checkExistingChapterAnalysis(chapterIndex, type)) {
       return
     }
-    
     // Need to run analysis - check for API key
     if (!apiKey) {
       setPendingAction({
@@ -295,10 +302,14 @@ const TextAnalysis = ({ bookId, bookTitle, bookContent }: AnalysisProps) => {
   }
   
   // Actual analysis function
-  const performAnalysis = async (chapterIndex: number, type: AnalysisType, currentApiKey: string) => {
-    setIsLoading(true)
+  const performAnalysis = async (chapterIndex: number, type: AnalysisType, currentApiKey: string, modifyLoading: boolean = true) => {
+    if (modifyLoading) {
+      setIsLoading(true)
+      setAnalysisProgress(0)
+    }
+
     setError(null)
-    setAnalysisProgress(0)
+
     
     const chapterContent = chapters[chapterIndex].content
     try {
@@ -332,14 +343,17 @@ const TextAnalysis = ({ bookId, bookTitle, bookContent }: AnalysisProps) => {
       if (err.message?.includes('API key') || err.message?.includes('authentication') || err.message?.includes('unauthorized')) {
         setError('Invalid API key. Please check your API key and try again.')
         setApiKey(null) // Clear the invalid key
+        setShowApiKeyModal(true)
       } else {
         setError(`Analysis failed: ${err.message || 'Unknown error'}`)
         console.error('Analysis error:', err)
         
       }
     } finally {
-      setIsLoading(false)
-      setAnalysisProgress(100)
+      if (modifyLoading) {
+        setIsLoading(false)
+        setAnalysisProgress(100)
+      }
     }
   }
   
@@ -467,27 +481,27 @@ const TextAnalysis = ({ bookId, bookTitle, bookContent }: AnalysisProps) => {
             )}
             
             <Tabs 
-              value={activeAnalysis} 
+              value={activeAnalysis}
               onValueChange={(value) => setActiveAnalysis(value as AnalysisType)}
             >
               <TabsList className="grid grid-cols-5 mb-6">
-                <TabsTrigger value="characters" className="flex items-center">
+                <TabsTrigger value="characters" className="flex items-center"  disabled={isLoading} >
                   <User className="mr-2 h-5 w-5" />
                   Characters
                 </TabsTrigger>
-                <TabsTrigger value="summary" className="flex items-center">
+                <TabsTrigger value="summary" className="flex items-center" disabled={isLoading} >
                   <Bookmark className="mr-2 h-5 w-5" />
                   Summary
                 </TabsTrigger>
-                <TabsTrigger value="sentiment" className="flex items-center">
+                <TabsTrigger value="sentiment" className="flex items-center" disabled={isLoading} >
                   <MessageSquare className="mr-2 h-5 w-5" />
                   Sentiment
                 </TabsTrigger>
-                <TabsTrigger value="themes" className="flex items-center">
+                <TabsTrigger value="themes" className="flex items-center" disabled={isLoading}>
                   <AlertCircle className="mr-2 h-5 w-5" />
                   Themes
                 </TabsTrigger>
-                <TabsTrigger value="character-graph" className="flex items-center">
+                <TabsTrigger value="character-graph" className="flex items-center" disabled={isLoading}>
                   <AlertCircle className="mr-2 h-5 w-5" />
                   Character Relationship
                 </TabsTrigger>
@@ -558,7 +572,7 @@ const TextAnalysis = ({ bookId, bookTitle, bookContent }: AnalysisProps) => {
             
             {/* Characters Analysis */}
             <TabsContent value="characters">
-              {isLoading && activeAnalysis === 'characters' ? (
+              {isLoading ? (
                 <div className="space-y-4">
                   {[1, 2, 3].map(i => (
                     <div key={i} className="flex space-x-4">
@@ -606,7 +620,7 @@ const TextAnalysis = ({ bookId, bookTitle, bookContent }: AnalysisProps) => {
             
             {/* Summary Analysis */}
             <TabsContent value="summary">
-              {isLoading && activeAnalysis === 'summary' ? (
+              {isLoading ? (
                 <div className="space-y-2">
                   <Skeleton className="h-4 w-full" />
                   <Skeleton className="h-4 w-full" />
@@ -634,7 +648,7 @@ const TextAnalysis = ({ bookId, bookTitle, bookContent }: AnalysisProps) => {
             
             {/* Sentiment Analysis */}
             <TabsContent value="sentiment">
-              {isLoading && activeAnalysis === 'sentiment' ? (
+              {isLoading  ? (
                 <div className="space-y-4">
                   <Skeleton className="h-8 w-full" />
                   <div className="grid grid-cols-3 gap-4">
@@ -690,7 +704,7 @@ const TextAnalysis = ({ bookId, bookTitle, bookContent }: AnalysisProps) => {
             
             {/* Themes Analysis */}
             <TabsContent value="themes">
-              {isLoading && activeAnalysis === 'themes' ? (
+              {isLoading? (
                 <div className="space-y-4">
                   {[1, 2, 3].map(i => (
                     <div key={i} className="space-y-2">
