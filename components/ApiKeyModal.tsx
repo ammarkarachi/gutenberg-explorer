@@ -98,6 +98,7 @@ export function ApiKeyModal({
       onSubmit(apiKey)
       onClose()
     } catch (err) {
+      console.error('Error validating API key:', err)
       setError('Failed to validate API key. Please check and try again.')
     } finally {
       setIsValidating(false)

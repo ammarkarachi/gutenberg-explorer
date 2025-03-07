@@ -12,9 +12,6 @@ import { Analysis } from '@/types'
 import { convertNumberToOrdinal } from '@/lib/utils'
 
 
-function converNumberTo() {
-
-}
 export default function AnalysisPage() {
   const [analyses, setAnalyses] = useState<Analysis[]>([])
   const [searchTerm, setSearchTerm] = useState('')
@@ -24,7 +21,7 @@ export default function AnalysisPage() {
   } = useBookCacheStore()
   useEffect(() => {
     setAnalyses(getSavedAnalyses())
-  }, [])
+  }, [getSavedAnalyses])
   
   const filteredAnalyses = analyses.filter(
     analysis => 

@@ -1,5 +1,5 @@
 "use client"
-
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
@@ -11,8 +11,6 @@ import {
   MessageSquare, 
   Download,
   BookOpen,
-  ChevronDown,
-  ChevronUp,
   Globe,
   Loader2,
   Database,
@@ -24,7 +22,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { Progress } from "@/components/ui/progress"
 import { AnalysisType } from '@/types'
 import { splitBookIntoChapters, getChapterPreview } from '@/lib/chapterUtils'
-import { analyzeWithGroq, detectLanguage, getGroqRateLimits } from '@/lib/groqService'
+import { analyzeWithGroq, detectLanguage } from '@/lib/groqService'
 import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { useBookCacheStore } from '@/lib/bookCacheStore'
@@ -123,7 +121,7 @@ const TextAnalysis = ({ bookId, bookTitle, bookContent }: AnalysisProps) => {
         setActiveAnalysis(progress.lastAnalysisType)
       }
     }
-  }, [bookId, chapters.length, getCachedAnalysis, getProgress])
+  }, [bookId, chapters])
   
   // Save progress when chapter or analysis type changes
   useEffect(() => {
@@ -134,7 +132,33 @@ const TextAnalysis = ({ bookId, bookTitle, bookContent }: AnalysisProps) => {
       })
     }
   }, [bookId, activeChapter, activeAnalysis, saveProgress])
+    
+  // Actual language detection function
+  const performLanguageDetection = async (currentApiKey: string) => {
+      setIsDetectingLanguage(true)
+      setError(null)
+      
+      try {
+        // Set the API key for this call
+        process.env.NEXT_PUBLIC_GROQ_API_KEY = currentApiKey;
+        
+        const result = await detectLanguage(bookContent)
+        setLanguage(result)
+        
   
+      } catch (err: any) {
+        // Check if it's an authentication error
+        if (err.message?.includes('API key') || err.message?.includes('authentication') || err.message?.includes('unauthorized')) {
+          setError('Invalid API key. Please check your API key and try again.')
+          setApiKey(null) // Clear the invalid key
+        } else {
+          setError(`Failed to detect language: ${err.message}`)
+          console.error('Language detection error:', err)
+        }
+      } finally {
+        setIsDetectingLanguage(false)
+      }
+    }
   // When API key is set, complete any pending action
   useEffect(() => {
     if (apiKey && pendingAction) {
@@ -180,32 +204,7 @@ const TextAnalysis = ({ bookId, bookTitle, bookContent }: AnalysisProps) => {
     performLanguageDetection(apiKey)
   }
   
-  // Actual language detection function
-  const performLanguageDetection = async (currentApiKey: string) => {
-    setIsDetectingLanguage(true)
-    setError(null)
-    
-    try {
-      // Set the API key for this call
-      process.env.NEXT_PUBLIC_GROQ_API_KEY = currentApiKey;
-      
-      const result = await detectLanguage(bookContent)
-      setLanguage(result)
-      
 
-    } catch (err: any) {
-      // Check if it's an authentication error
-      if (err.message?.includes('API key') || err.message?.includes('authentication') || err.message?.includes('unauthorized')) {
-        setError('Invalid API key. Please check your API key and try again.')
-        setApiKey(null) // Clear the invalid key
-      } else {
-        setError(`Failed to detect language: ${err.message}`)
-        console.error('Language detection error:', err)
-      }
-    } finally {
-      setIsDetectingLanguage(false)
-    }
-  }
 
   // Function to analyze all chapters (for the current type)
   const analyzeAllChapters = async () => {
@@ -393,7 +392,7 @@ const TextAnalysis = ({ bookId, bookTitle, bookContent }: AnalysisProps) => {
           <CardHeader>
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
               <div>
-                <CardTitle className="text-xl">AI Analysis for "{bookTitle}"</CardTitle>
+                <CardTitle className="text-xl">AI Analysis for &quot;{bookTitle}&quot;</CardTitle>
                 <CardDescription>
                   {chapters.length === 1 
                     ? "1 chapter detected" 

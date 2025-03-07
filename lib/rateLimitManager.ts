@@ -1,7 +1,7 @@
 /**
  * A utility to manage API rate limits for free tier LLM services
  */
-
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // Storage for API call timestamps
 type APICallRecord = {
     timestamp: number;

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, use } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -26,7 +26,7 @@ export default function SavedBooksPage() {
       ...book,
       lastAccessed: new Date(book.lastAccessed)
     })))
-  }, [])
+  }, [setSavedBooks, cachedBooks])
   
   const removeBook = (id: string) => {
     setSavedBooks(savedBooks.filter(book => book.id !== id))

@@ -7,14 +7,14 @@ import { ArrowLeft, Loader2, Save, Trash2 } from 'lucide-react'
 import BookDisplay from '@/components/BookDisplay'
 import TextAnalysis from '@/components/TextAnalysis'
 import { fetchBookMetadata } from '@/lib/api'
-import { useBookCacheStore } from '@/lib/bookCacheStore'
+import { CachedBook, useBookCacheStore } from '@/lib/bookCacheStore'
 
 export default function BookPage() {
   const params = useParams()
   const router = useRouter()
   const bookId = typeof params.id === 'string' ? params.id : params.id?.[0] || ''
   
-  const [bookData, setBookData] = useState<any>(null)
+  const [bookData, setBookData] = useState<CachedBook | null>(null)
   const [loading, setLoading] = useState(true)
   const [showAnalysis, setShowAnalysis] = useState(false)
   const [isSaved, setIsSaved] = useState(false)
@@ -62,7 +62,10 @@ export default function BookPage() {
         // Not in cache, fetch from API
         console.log('Fetching book from API:', bookId)
         const data = await fetchBookMetadata(bookId)
-        setBookData(data)
+        setBookData({
+          ...data,
+          lastAccessed: new Date().toISOString()
+        })
         
         // Store in temp cache (but don't mark as explicitly saved)
         cacheBook(data)
@@ -123,7 +126,9 @@ export default function BookPage() {
       removeBookFromCache(bookId)
       setIsSaved(false)
     } else {
-      cacheBook(bookData)
+      if (bookData) {
+        cacheBook(bookData)
+      }
       setIsSaved(true)
     }
   }
@@ -155,7 +160,7 @@ export default function BookPage() {
     return (
       <div className="text-center py-20">
         <h2 className="text-2xl font-bold mb-4">Book Not Found</h2>
-        <p className="mb-8">We couldn't find a book with the ID: {bookId}</p>
+        <p className="mb-8">We couldn&apos;t find a book with the ID: {bookId}</p>
         <Button onClick={() => router.push('/')}>
           Return Home
         </Button>

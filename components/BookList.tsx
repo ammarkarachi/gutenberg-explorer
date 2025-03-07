@@ -7,12 +7,6 @@ import { Card, CardContent } from '@/components/ui/card'
 import { formatDistanceToNow } from 'date-fns'
 import { useBookCacheStore } from '@/lib/bookCacheStore'
 
-// This would be replaced with actual data from storage
-const mockRecentBooks = [
-  { id: '1342', title: 'Pride and Prejudice', author: 'Jane Austen', lastAccessed: new Date(Date.now() - 1000 * 60 * 60 * 2) },
-  { id: '84', title: 'Frankenstein', author: 'Mary Wollstonecraft Shelley', lastAccessed: new Date(Date.now() - 1000 * 60 * 60 * 24) },
-  { id: '1661', title: 'The Adventures of Sherlock Holmes', author: 'Arthur Conan Doyle', lastAccessed: new Date(Date.now() - 1000 * 60 * 60 * 24 * 2) },
-]
 
 const BookList = () => {
   const [recentBooks, setRecentBooks] = useState<Array<{
@@ -30,7 +24,7 @@ const BookList = () => {
       ...book,
       lastAccessed: new Date(book.lastAccessed)
     })))
-  }, [])
+  }, [getRecentBooks])
 
   if (recentBooks.length === 0) {
     return (
