@@ -9,7 +9,7 @@ const getGroqApiKey = (): string => {
 };
 
 const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
-const LARGE_MODEL = process.env.GROQ_LARGE_MODEL || 'llama-3.3-70b-versatile'
+const LARGE_MODEL = process.env.GROQ_LARGE_MODEL || 'llama-3.1-8b-instant'
 const SMALL_MODEL = process.env.GROQ_SMALL_MODEL ||'llama3-8b-8192'
 // Maximum tokens per model
 const MODEL_TOKEN_LIMITS = 8192
@@ -72,6 +72,7 @@ async function makeGroqRequest(params: GroqRequestParams) {
  */
 function optimizePromptForTokenLimit(
   prompt: string, 
+  analysisType: AnalysisType,
   modelName: string,
   reservedTokens: number = 1000  // Reserve tokens for system message and response
 ): string {
@@ -108,7 +109,7 @@ function optimizePromptForTokenLimit(
     // Compress the text
     const compressedText = truncateForAnalysis(
       textToCompress, 
-      'default',
+      analysisType,
       keepLength
     );
     
@@ -232,7 +233,7 @@ export async function analyzeWithGroq(
   }
   
   // Optimize prompt for token limit
-  const optimizedPrompt = optimizePromptForTokenLimit(prompt, modelName);
+  const optimizedPrompt = optimizePromptForTokenLimit(prompt, analysisType, modelName);
   
   const params: GroqRequestParams = {
     model: modelName,

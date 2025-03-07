@@ -3,6 +3,8 @@
  * to reduce token usage and avoid rate limits
  */
 
+import { AnalysisType } from "@/types";
+
 /**
  * Extracts key sentences from text using a basic extractive summarization approach
  * @param text The input text to compress
@@ -322,7 +324,7 @@ export function extractKeyContent(text: string, compressionLevel: number = 3): s
    */
   export function compressTextForAnalysis(
     text: string, 
-    analysisType: string, 
+    analysisType: AnalysisType, 
     maxLength: number = 2000
   ): string {
     // Skip compression for small texts
@@ -330,6 +332,7 @@ export function extractKeyContent(text: string, compressionLevel: number = 3): s
     
     switch (analysisType) {
       case 'characters':
+      case 'character-graph':
         return summarizeForCharacterAnalysis(text, maxLength);
       case 'sentiment':
         return compressForSentimentAnalysis(text, maxLength);
