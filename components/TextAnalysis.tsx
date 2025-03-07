@@ -29,6 +29,7 @@ import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { useBookCacheStore } from '@/lib/bookCacheStore'
 import { ApiKeyModal, getStoredApiKey } from '@/components/ApiKeyModal'
+import CharacterRelationshipGraph from './ui/graph'
 
 type AnalysisProps = {
   bookId: string
@@ -470,33 +471,37 @@ const TextAnalysis = ({ bookId, bookTitle, bookContent }: AnalysisProps) => {
               value={activeAnalysis} 
               onValueChange={(value) => setActiveAnalysis(value as AnalysisType)}
             >
-              <TabsList className="grid grid-cols-4 mb-6">
+              <TabsList className="grid grid-cols-5 mb-6">
                 <TabsTrigger value="characters" className="flex items-center">
-                  <User className="mr-2 h-4 w-4" />
+                  <User className="mr-2 h-5 w-5" />
                   Characters
                 </TabsTrigger>
                 <TabsTrigger value="summary" className="flex items-center">
-                  <Bookmark className="mr-2 h-4 w-4" />
+                  <Bookmark className="mr-2 h-5 w-5" />
                   Summary
                 </TabsTrigger>
                 <TabsTrigger value="sentiment" className="flex items-center">
-                  <MessageSquare className="mr-2 h-4 w-4" />
+                  <MessageSquare className="mr-2 h-5 w-5" />
                   Sentiment
                 </TabsTrigger>
                 <TabsTrigger value="themes" className="flex items-center">
-                  <AlertCircle className="mr-2 h-4 w-4" />
+                  <AlertCircle className="mr-2 h-5 w-5" />
                   Themes
+                </TabsTrigger>
+                <TabsTrigger value="character-graph" className="flex items-center">
+                  <AlertCircle className="mr-2 h-5 w-5" />
+                  Character Relationship
                 </TabsTrigger>
               </TabsList>
               
               {/* Chapter selector */}
-              <div className="mb-6">
+               <div className="mb-6">
                 <h3 className="text-sm font-medium mb-2 flex items-center">
                   <BookOpen className="mr-2 h-4 w-4" />
                   Select Chapter to Analyze
                 </h3>
-                
-              <div className="rounded-md p-2 max-h-60 overflow-y-auto">
+
+                <div className="rounded-md p-2 max-h-60 overflow-y-auto">
                   <Accordion type="single" collapsible>
                     {chapters.map((chapter, index) => (
                       <AccordionItem key={index} value={`chapter-${index}`}>
@@ -512,8 +517,8 @@ const TextAnalysis = ({ bookId, bookTitle, bookContent }: AnalysisProps) => {
                           <div className="text-xs text-gray-600 mb-2">
                             {getChapterPreview(chapter.content)}
                           </div>
-                          <Button 
-                            size="sm" 
+                          <Button
+                            size="sm"
                             variant={activeChapter === index ? "default" : "outline"}
                             onClick={() => handleAnalyzeChapter(index, activeAnalysis)}
                             disabled={isLoading}
@@ -542,7 +547,6 @@ const TextAnalysis = ({ bookId, bookTitle, bookContent }: AnalysisProps) => {
                            'Analyze All Chapters'
                          )}
                        </Button>
-
               }
               {isLoading && (
                 <div className="mt-2 mb-6">
@@ -724,6 +728,13 @@ const TextAnalysis = ({ bookId, bookTitle, bookContent }: AnalysisProps) => {
               )}
             </TabsContent>
             
+            {/* Character Relationship Graph */}
+            <TabsContent value="character-graph">
+              {/* <div className="text-center py-8">
+                <p className="mb-4 text-gray-600">Character Relationship Graph</p>
+              </div> */}
+              <CharacterRelationshipGraph characterData={getCurrentAnalysisData()} />
+            </TabsContent>
             </Tabs>
           </CardContent>
         </Card>
