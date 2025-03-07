@@ -56,7 +56,7 @@ async function makeGroqRequest(params: GroqRequestParams) {
         if (error.response.status === 401) {
           throw new Error('Invalid API key. Please check your credentials and try again.');
         } else if (error.response.status === 429) {
-          throw new Error('Rate limit exceeded. Please wait a moment and try again.');
+          throw error
         } else {
           throw new Error(`API error: ${error.response.data.message || error.response.statusText}`);
         }

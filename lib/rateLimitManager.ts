@@ -14,17 +14,20 @@ type APICallRecord = {
     private maxCallsPerHour: number;
     private maxCallsPerDay: number;
     private storageKey: string;
+    numberOfRetries : number;
   
     constructor({
       maxCallsPerMinute = 5,  // Default: 5 calls per minute
       maxCallsPerHour = 30,   // Default: 30 calls per hour
       maxCallsPerDay = 100,   // Default: 100 calls per day
-      storageKey = 'api-rate-limits'
+      storageKey = 'api-rate-limits',
+      numberOfRetries = 5,
     } = {}) {
       this.maxCallsPerMinute = maxCallsPerMinute;
       this.maxCallsPerHour = maxCallsPerHour;
       this.maxCallsPerDay = maxCallsPerDay;
       this.storageKey = storageKey;
+      this.numberOfRetries = numberOfRetries
       
       // Load from localStorage if available
       this.loadFromStorage();
@@ -184,9 +187,14 @@ type APICallRecord = {
   // Export a wrapper function for API calls with rate limiting
   export async function withRateLimit<T>(
     apiCall: () => Promise<T>,
-    endpoint: string = 'default'
+    endpoint: string = 'default',
+    retry: number = 0,
   ): Promise<T> {
     const timeToWait = rateLimitManager.getTimeToWait(endpoint);
+
+    if (retry > rateLimitManager.numberOfRetries) {
+      throw new Error('Maximum retries reached')
+    }
     
     if (timeToWait > 0) {
       await new Promise(resolve => setTimeout(resolve, timeToWait));
@@ -199,11 +207,11 @@ type APICallRecord = {
     } catch (error : any) {
       // Check if it's a rate limit error (depends on the API)
       console.error('API call failed:', error);
-      if (error.response?.status === 429) {
+      if (error.response?.status === 429 || error.code === 'rate_limit_exceeded') {
         // Handle rate limit error - maybe wait longer and retry
-        const retryAfter = parseInt(error.response.headers['retry-after'] || '60', 10);
+        const retryAfter = parseInt(error.response.headers['retry-after'] || '5', 10);
         await new Promise(resolve => setTimeout(resolve, retryAfter * 1000));
-        return withRateLimit(apiCall, endpoint);
+        return withRateLimit(apiCall, endpoint, retry++);
       }
       throw error;
     }
