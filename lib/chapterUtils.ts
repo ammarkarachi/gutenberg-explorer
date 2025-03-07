@@ -4,7 +4,7 @@ import { compressTextForAnalysis } from './textCompressionUtils';
  * Splits book text into chapters based on common chapter patterns
  */
 export function splitBookIntoChapters(text: string): { title: string; content: string }[] {
-  // Common chapter heading patterns in classic literature
+  // Common chapter heading patterns
   const chapterPatterns = [
     /\bCHAPTER\s+([IVXLCDM]+|\d+)(?:\s+|:|\.)/gi,  // CHAPTER I, CHAPTER 1, etc.
     /\bChapter\s+([IVXLCDM]+|\d+)(?:\s+|:|\.)/g,   // Chapter I, Chapter 1, etc.
@@ -12,8 +12,7 @@ export function splitBookIntoChapters(text: string): { title: string; content: s
     /\n\s*([IVXLCDM]+|\d+)\s*\n/g,                 // Roman numerals or numbers on their own line
   ];
   
-  // Find all potential chapter markers with their positions
-  let chapterMarkers: { index: number; title: string }[] = [];
+  const chapterMarkers: { index: number; title: string }[] = [];
   
   for (const pattern of chapterPatterns) {
     let match;

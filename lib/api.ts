@@ -4,7 +4,7 @@ import { preprocessBookText } from './utils';
 import Fuse from 'fuse.js';
 
 
-let bookRecords: BookRecord[] | null = null;
+const bookRecords: BookRecord[] | null = null;
 
 /**
  * Fetches TSV data from a given URL and caches it

@@ -2,7 +2,7 @@ import axios from 'axios';
 import { truncateForAnalysis, estimateTokenCount } from './chapterUtils';
 import { AnalysisType } from '@/types';
 import { rateLimitManager, withRateLimit } from './rateLimitManager';
-
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // Get API key from environment variable - will be set by TextAnalysis component
 const getGroqApiKey = (): string => {
   return process.env.NEXT_PUBLIC_GROQ_API_KEY || '';
@@ -92,8 +92,8 @@ function optimizePromptForTokenLimit(
   const reductionFactor = availableTokens / estimatedTokens;
   
   // Extract the actual text from the prompt template
-  let textStart = prompt.indexOf('"""') + 3;
-  let textEnd = prompt.lastIndexOf('"""');
+  const textStart = prompt.indexOf('"""') + 3;
+  const textEnd = prompt.lastIndexOf('"""');
   
   if (textStart >= 3 && textEnd > textStart) {
     // Extract the text between the triple quotes
@@ -260,11 +260,13 @@ export async function analyzeWithGroq(
       return JSON.parse(jsonStr);
     } catch (parseError) {
       // Attempt to complete the JSON if it doesn't match
+      console.error('Error parsing JSON from Groq response retry:', parseError);
       if (jsonStr.startsWith('{')) {
         jsonStr += '}';
       } else if (jsonStr.startsWith('[')) {
         jsonStr += ']';
       }
+      
       return JSON.parse(jsonStr);
     }
     } catch (error) {

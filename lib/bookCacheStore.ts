@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { create } from 'zustand'
 import { persist, PersistOptions } from 'zustand/middleware'
 import { Analysis, AnalysisType } from '@/types'
@@ -52,10 +53,6 @@ interface BookCacheStore {
   
   clearAllCache: () => void
 }
-
-// Create a unique key for analyses
-const createAnalysisKey = (bookId: string, chapterIndex: number, analysisType: AnalysisType) => 
-  `${bookId}:${chapterIndex}:${analysisType}`;
 
 // Calculate cache size estimation
 const estimateCacheSize = (store: BookCacheStore): number => {
@@ -283,10 +280,10 @@ export const useBookCacheStore = create<BookCacheStore>()(
     }),
     {
       name: 'gutenberg-explorer-cache',
-      serialize: (state: { recentBooks: any; userProgress: any; cachedBooks: { [s: string]: any } | ArrayLike<unknown>; cachedAnalyses: {} }) => {
+      serialize: (state: { recentBooks: any; userProgress: any; cachedBooks: Record<string, CachedBook>  ; cachedAnalyses: Record<string, Record<number, Record<AnalysisType, CachedAnalysis>>> }) => {
         const serializable = {
           cachedBooks: {} as Record<string, CachedBook>,
-          cachedAnalyses: {},
+          cachedAnalyses: {} as Record<string, Record<number, Record<AnalysisType, CachedAnalysis>>>,
           recentBooks: state.recentBooks,
           userProgress: state.userProgress
         };

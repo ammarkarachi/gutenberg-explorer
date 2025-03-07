@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useEffect, useRef } from 'react';
 
 // Define TypeScript interfaces
@@ -55,15 +56,6 @@ const CharacterRelationshipGraph: React.FC<CharacterRelationshipGraphProps> = ({
   const simulationRef = useRef<any>(null);
   const svgRef = useRef<SVGSVGElement>(null);
   
-  // Default data if none provided
-  const defaultData: CharacterData = {
-    nodes: [
-      { id: "character_name", name: "Character Full Name", group: "faction", importance: 8 }
-    ],
-    links: [
-      { source: "character1_id", target: "character2_id", type: "relationship_type", strength: 7, sentiment: 3 }
-    ]
-  };
   
   // Set mounted state for CSR
   useEffect(() => {
@@ -79,7 +71,7 @@ const CharacterRelationshipGraph: React.FC<CharacterRelationshipGraphProps> = ({
     const importModules = async () => {
       try {
         const d3 = await import('d3');
-        const data = characterData || defaultData;
+        const data = characterData || { nodes: [], links: [] };
         
         // Process the data to prepare for force layout
         const nodes: GraphNode[] = data.nodes.map(node => ({
@@ -108,7 +100,7 @@ const CharacterRelationshipGraph: React.FC<CharacterRelationshipGraphProps> = ({
         
         // Initialize the simulation
         simulationRef.current = d3.forceSimulation(nodes)
-          .force('charge', d3.forceManyBody().strength(-200))
+          .force('charge', d3.forceManyBody().strength(-100))
           .force('center', d3.forceCenter(width / 2, height / 2))
           .force('link', d3.forceLink(links).id((d: any) => d.id).distance(100))
           .on('tick', () => {
@@ -192,7 +184,7 @@ const CharacterRelationshipGraph: React.FC<CharacterRelationshipGraphProps> = ({
     <div className="relative w-full h-full bg-[#121827] rounded-lg overflow-hidden">
       <h2 className="py-6 text-xl text-center text-gray-400">Character Relationship Graph</h2>
       
-      <div className="relative w-full h-full" onClick={handleBackgroundClick}>
+      <div className="relative w-full h-full" onClick={handleBackgroundClick}  >
         <svg ref={svgRef} width={width} height={height}>
           <rect width={width} height={height} fill="#121827" rx={14} />
           

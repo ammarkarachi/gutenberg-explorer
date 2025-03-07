@@ -228,19 +228,19 @@ export function extractKeyContent(text: string, compressionLevel: number = 3): s
     
     // Get top scoring paragraphs from each section
     const topBeginning = beginning
-      .map((p, i) => ({ paragraph: p, score: scoredParagraphs.find(sp => sp.paragraph === p)?.score || 0 }))
+      .map((p) => ({ paragraph: p, score: scoredParagraphs.find(sp => sp.paragraph === p)?.score || 0 }))
       .sort((a, b) => b.score - a.score)
       .slice(0, 2)
       .map(item => item.paragraph);
     
     const topMiddle = middle
-      .map((p, i) => ({ paragraph: p, score: scoredParagraphs.find(sp => sp.paragraph === p)?.score || 0 }))
+      .map((p) => ({ paragraph: p, score: scoredParagraphs.find(sp => sp.paragraph === p)?.score || 0 }))
       .sort((a, b) => b.score - a.score)
       .slice(0, 2)
       .map(item => item.paragraph);
     
     const topEnd = end
-      .map((p, i) => ({ paragraph: p, score: scoredParagraphs.find(sp => sp.paragraph === p)?.score || 0 }))
+      .map((p) => ({ paragraph: p, score: scoredParagraphs.find(sp => sp.paragraph === p)?.score || 0 }))
       .sort((a, b) => b.score - a.score)
       .slice(0, 2)
       .map(item => item.paragraph);

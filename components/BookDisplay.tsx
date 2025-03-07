@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { BookOpen, Info, BarChart3, ChevronDown, ChevronUp, BookMarked, Tag } from 'lucide-react'
+import { BookOpen, Info, BarChart3, ChevronDown, ChevronUp, Tag } from 'lucide-react'
 
 type BookProps = {
   id: string
@@ -16,10 +16,10 @@ type BookProps = {
   coverImage?: string
   subjects: string[]
   language: string
-  publisher: string
-  categories: string[]
-  publishDate: string
-  rights: string
+  publisher?: string
+  categories?: string[]
+  publishDate?: string
+  rights?: string
 
 }
 

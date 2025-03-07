@@ -7,7 +7,7 @@ export default function Home() {
       <section className="text-center py-10">
         <h1 className="text-4xl font-bold mb-4">Gutenberg Explorer</h1>
         <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-          Discover, read, and analyze classic literature from Project Gutenberg's vast collection of free ebooks.
+          Discover, read, and analyze classic literature from Project Gutenberg&apos;s vast collection of free ebooks.
         </p>
       </section>
       
