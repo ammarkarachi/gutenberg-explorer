@@ -29,11 +29,12 @@ export interface ProgressState {
 }
 
 interface BookCacheStore {
-    cachedBooks: Record<string, CachedBook>
+  cachedBooks: Record<string, CachedBook>
   cachedAnalyses: Record<string, Record<number, Record<AnalysisType, CachedAnalysis>>>
-  recentBooks: string[]   userProgress: Record<string, ProgressState>
+  recentBooks: string[]   
+  userProgress: Record<string, ProgressState>
   
-    cacheBook: (book: Omit<CachedBook, 'lastAccessed'>) => void
+  cacheBook: (book: Omit<CachedBook, 'lastAccessed'>) => void
   getCachedBook: (bookId: string) => CachedBook | null
   removeBookFromCache: (bookId: string) => void
   getRecentBooks: () => CachedBook[]
