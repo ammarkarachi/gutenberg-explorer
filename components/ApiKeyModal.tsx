@@ -28,7 +28,6 @@ interface ApiKeyModalProps {
   serviceName?: string
 }
 
-// Key for storing in localStorage - using a non-obvious name
 const STORAGE_KEY = 'gutenberg_explorer_secure_credentials'
 
 export function ApiKeyModal({
@@ -43,38 +42,31 @@ export function ApiKeyModal({
   const [isValidating, setIsValidating] = useState(false)
   const [keyFound, setKeyFound] = useState(false)
 
-  // Check if we have a stored key on component mount
-  useEffect(() => {
+    useEffect(() => {
     if (!isOpen) return
 
-    // Try to load the key from storage
-    try {
+        try {
       const storedData = localStorage.getItem(STORAGE_KEY)
       if (storedData) {
         const decryptedData = decryptData(storedData)
         const parsedData = JSON.parse(decryptedData)
         
-        // If the key exists for this service
-        if (parsedData && parsedData[getServiceKey(serviceName)]) {
+                if (parsedData && parsedData[getServiceKey(serviceName)]) {
           setApiKey(parsedData[getServiceKey(serviceName)])
           setKeyFound(true)
         }
       }
     } catch (err) {
       console.error('Error loading stored API key:', err)
-      // If there's an error, we'll just prompt for the key again
-      localStorage.removeItem(STORAGE_KEY)
+            localStorage.removeItem(STORAGE_KEY)
     }
   }, [isOpen, serviceName])
 
-  // Basic validation function for API keys
-  const validateApiKey = (key: string): boolean => {
-    // This is a simple validation - adjust based on the actual API key format
-    return key.trim().length >= 8
+    const validateApiKey = (key: string): boolean => {
+        return key.trim().length >= 8
   }
 
-  // Handle key submission
-  const handleSubmit = async () => {
+    const handleSubmit = async () => {
     setError(null)
     
     if (!validateApiKey(apiKey)) {
@@ -85,17 +77,12 @@ export function ApiKeyModal({
     setIsValidating(true)
     
     try {
-      // If you want to validate the key works before saving
-      // For now, we'll just assume it's valid
-      // const isValid = await testApiKey(apiKey)
-
-      // Store the key if rememberKey is checked
-      if (rememberKey) {
+                  
+            if (rememberKey) {
         storeApiKey(apiKey, serviceName)
       }
 
-      // Call the onSubmit callback
-      onSubmit(apiKey)
+            onSubmit(apiKey)
       onClose()
     } catch (err) {
       console.error('Error validating API key:', err)
@@ -137,8 +124,7 @@ export function ApiKeyModal({
               value={apiKey}
               onChange={(e) => {
                 setApiKey(e.target.value)
-                setKeyFound(false) // Reset the found flag when user edits
-              }}
+                setKeyFound(false)               }}
               autoComplete="off"
             />
           </div>
@@ -192,58 +178,45 @@ export function ApiKeyModal({
   )
 }
 
-// Helper functions for secure storage
 
-// Simple function to convert service name to a key
 function getServiceKey(serviceName: string): string {
   return serviceName.toLowerCase().replace(/\s+/g, '_')
 }
 
-// Basic encryption/decryption functions
-// Note: This is not high-security encryption, but it provides basic obfuscation
-// For truly sensitive data, consider more robust solutions
 
 function encryptData(data: string): string {
-  // Basic XOR encryption with a random key
-  const key = Math.floor(Math.random() * 256)
+    const key = Math.floor(Math.random() * 256)
   const encrypted = Array.from(data).map(char => 
     String.fromCharCode(char.charCodeAt(0) ^ key)
   ).join('')
   
-  // Store the key as the first character (as a char code)
-  return String.fromCharCode(key) + encrypted
+    return String.fromCharCode(key) + encrypted
 }
 
 function decryptData(encryptedData: string): string {
-  // Extract the key from the first character
-  const key = encryptedData.charCodeAt(0)
+    const key = encryptedData.charCodeAt(0)
   
-  // Decrypt the rest of the string
-  return Array.from(encryptedData.slice(1)).map(char =>
+    return Array.from(encryptedData.slice(1)).map(char =>
     String.fromCharCode(char.charCodeAt(0) ^ key)
   ).join('')
 }
 
 function storeApiKey(apiKey: string, serviceName: string): void {
   try {
-    // Get existing stored data
-    const storedData = localStorage.getItem(STORAGE_KEY)
+        const storedData = localStorage.getItem(STORAGE_KEY)
     let data = {}
     
     if (storedData) {
-      // Decrypt and parse existing data
-      const decryptedData = decryptData(storedData)
+            const decryptedData = decryptData(storedData)
       data = JSON.parse(decryptedData)
     }
     
-    // Update with the new key
-    data = {
+        data = {
       ...data,
       [getServiceKey(serviceName)]: apiKey
     }
     
-    // Encrypt and store
-    const encryptedData = encryptData(JSON.stringify(data))
+        const encryptedData = encryptData(JSON.stringify(data))
     localStorage.setItem(STORAGE_KEY, encryptedData)
   } catch (err) {
     console.error('Error storing API key:', err)
@@ -273,16 +246,13 @@ export function clearStoredApiKey(serviceName: string): void {
     const decryptedData = decryptData(storedData)
     const data = JSON.parse(decryptedData)
     
-    // Remove the key for this service
-    delete data[getServiceKey(serviceName)]
+        delete data[getServiceKey(serviceName)]
     
-    // If there are still other keys, update storage
-    if (Object.keys(data).length > 0) {
+        if (Object.keys(data).length > 0) {
       const encryptedData = encryptData(JSON.stringify(data))
       localStorage.setItem(STORAGE_KEY, encryptedData)
     } else {
-      // Otherwise, remove the item entirely
-      localStorage.removeItem(STORAGE_KEY)
+            localStorage.removeItem(STORAGE_KEY)
     }
   } catch (err) {
     console.error('Error clearing API key:', err)

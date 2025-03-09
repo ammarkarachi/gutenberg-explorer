@@ -2,7 +2,6 @@
  * A utility to manage API rate limits for free tier LLM services
  */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-// Storage for API call timestamps
 type APICallRecord = {
     timestamp: number;
     endpoint: string;
@@ -17,10 +16,7 @@ type APICallRecord = {
     numberOfRetries : number;
   
     constructor({
-      maxCallsPerMinute = 5,  // Default: 5 calls per minute
-      maxCallsPerHour = 30,   // Default: 30 calls per hour
-      maxCallsPerDay = 100,   // Default: 100 calls per day
-      storageKey = 'api-rate-limits',
+      maxCallsPerMinute = 5,        maxCallsPerHour = 30,         maxCallsPerDay = 100,         storageKey = 'api-rate-limits',
       numberOfRetries = 5,
     } = {}) {
       this.maxCallsPerMinute = maxCallsPerMinute;
@@ -29,8 +25,7 @@ type APICallRecord = {
       this.storageKey = storageKey;
       this.numberOfRetries = numberOfRetries
       
-      // Load from localStorage if available
-      this.loadFromStorage();
+            this.loadFromStorage();
     }
   
     private loadFromStorage() {
@@ -39,8 +34,7 @@ type APICallRecord = {
           const stored = localStorage.getItem(this.storageKey);
           if (stored) {
             const parsed = JSON.parse(stored);
-            // Filter out calls older than 1 day
-            const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;
+                        const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;
             this.apiCalls = parsed.filter((call: APICallRecord) => call.timestamp > oneDayAgo);
           }
         } catch (e) {
@@ -75,16 +69,14 @@ type APICallRecord = {
      * Check if a call can be made without hitting rate limits
      */
     canMakeCall(endpoint: string = 'default'): boolean {
-      // Clean up old calls first
-      this.cleanupOldCalls();
+            this.cleanupOldCalls();
       
       const now = Date.now();
       const oneMinuteAgo = now - 60 * 1000;
       const oneHourAgo = now - 60 * 60 * 1000;
       const oneDayAgo = now - 24 * 60 * 60 * 1000;
       
-      // Count calls within time windows
-      const callsLastMinute = this.apiCalls.filter(
+            const callsLastMinute = this.apiCalls.filter(
         call => call.timestamp > oneMinuteAgo && call.endpoint === endpoint
       ).length;
       
@@ -96,8 +88,7 @@ type APICallRecord = {
         call => call.timestamp > oneDayAgo && call.endpoint === endpoint
       ).length;
       
-      // Check all limits
-      return (
+            return (
         callsLastMinute < this.maxCallsPerMinute &&
         callsLastHour < this.maxCallsPerHour &&
         callsLastDay < this.maxCallsPerDay
@@ -124,16 +115,13 @@ type APICallRecord = {
       const now = Date.now();
       const oneMinuteAgo = now - 60 * 1000;
       
-      // Find the oldest call within the last minute
-      const recentCalls = this.apiCalls
+            const recentCalls = this.apiCalls
         .filter(call => call.timestamp > oneMinuteAgo && call.endpoint === endpoint)
         .sort((a, b) => a.timestamp - b.timestamp);
       
       if (recentCalls.length >= this.maxCallsPerMinute) {
-        // Wait until the oldest call is more than 1 minute old
-        const oldestCall = recentCalls[0];
-        return (oldestCall.timestamp + 60 * 1000) - now + 100; // Add 100ms buffer
-      }
+                const oldestCall = recentCalls[0];
+        return (oldestCall.timestamp + 60 * 1000) - now + 100;       }
       
       return 0;
     }
@@ -181,11 +169,9 @@ type APICallRecord = {
     }
   }
   
-  // Create a singleton instance
-  export const rateLimitManager = new RateLimitManager();
+    export const rateLimitManager = new RateLimitManager();
   
-  // Export a wrapper function for API calls with rate limiting
-  export async function withRateLimit<T>(
+    export async function withRateLimit<T>(
     apiCall: () => Promise<T>,
     endpoint: string = 'default',
     retry: number = 0,
@@ -205,11 +191,9 @@ type APICallRecord = {
       rateLimitManager.recordCall(endpoint);
       return result;
     } catch (error : any) {
-      // Check if it's a rate limit error (depends on the API)
-      console.error('API call failed:', error);
+            console.error('API call failed:', error);
       if (error.response?.status === 429 || error.code === 'rate_limit_exceeded') {
-        // Handle rate limit error - maybe wait longer and retry
-        const retryAfter = parseInt(error.response.headers['retry-after'] || '5', 10);
+                const retryAfter = parseInt(error.response.headers['retry-after'] || '5', 10);
         await new Promise(resolve => setTimeout(resolve, retryAfter * 1000));
         return withRateLimit(apiCall, endpoint, retry++);
       }

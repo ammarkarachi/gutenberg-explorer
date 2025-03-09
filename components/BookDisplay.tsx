@@ -35,14 +35,12 @@ const BookDisplay = ({
     ? book.content 
     : book.content.slice(0, 1000) + '...'
 
-  // Combine subjects and categories for display, removing duplicates
-  const allCategories = [...new Set([
+    const allCategories = [...new Set([
     ...(book.subjects || []),
     ...(book.categories || [])
   ])];
 
-  // Default cover image if none provided
-  const coverImage = book.coverImage || `/api/placeholder/240/320`;
+    const coverImage = book.coverImage || `/api/placeholder/240/320`;
 
   return (
     <div className="space-y-6">

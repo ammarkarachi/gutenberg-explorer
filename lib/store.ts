@@ -20,8 +20,7 @@ type Analysis = {
 }
 
 interface BookStore {
-  // Book state
-  recentBooks: Book[]
+    recentBooks: Book[]
   savedBooks: Book[]
   currentBook: {
     id: string | null
@@ -29,11 +28,9 @@ interface BookStore {
     metadata: any | null
   }
   
-  // Analysis state
-  analyses: Analysis[]
+    analyses: Analysis[]
   
-  // Actions
-  addRecentBook: (book: Omit<Book, 'lastAccessed'>) => void
+    addRecentBook: (book: Omit<Book, 'lastAccessed'>) => void
   saveBook: (book: Omit<Book, 'lastAccessed'>) => void
   removeBook: (id: string) => void
   setCurrentBook: (id: string, content: string, metadata: any) => void
@@ -46,8 +43,7 @@ interface BookStore {
 export const useBookStore = create<BookStore>()(
   persist(
     (set) => ({
-      // Initial state
-      recentBooks: [],
+            recentBooks: [],
       savedBooks: [],
       currentBook: {
         id: null,
@@ -56,23 +52,18 @@ export const useBookStore = create<BookStore>()(
       },
       analyses: [],
       
-      // Actions
-      addRecentBook: (book) => set((state) => {
-        // Remove the book if it already exists
-        const filteredBooks = state.recentBooks.filter(b => b.id !== book.id)
+            addRecentBook: (book) => set((state) => {
+                const filteredBooks = state.recentBooks.filter(b => b.id !== book.id)
         
-        // Add to the start of the array
-        return {
+                return {
           recentBooks: [
             { ...book, lastAccessed: new Date() },
             ...filteredBooks
-          ].slice(0, 10) // Keep only 10 most recent
-        }
+          ].slice(0, 10)         }
       }),
       
       saveBook: (book) => set((state) => {
-        // Check if book is already saved
-        if (state.savedBooks.some(b => b.id === book.id)) {
+                if (state.savedBooks.some(b => b.id === book.id)) {
           return {
             savedBooks: state.savedBooks.map(b => 
               b.id === book.id 
@@ -82,8 +73,7 @@ export const useBookStore = create<BookStore>()(
           }
         }
         
-        // Add new book
-        return {
+                return {
           savedBooks: [
             { ...book, lastAccessed: new Date() },
             ...state.savedBooks

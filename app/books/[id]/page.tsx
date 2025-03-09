@@ -19,11 +19,9 @@ export default function BookPage() {
   const [showAnalysis, setShowAnalysis] = useState(false)
   const [isSaved, setIsSaved] = useState(false)
   
-  // References to save scroll position
-  const contentRef = useRef<HTMLDivElement>(null)
+    const contentRef = useRef<HTMLDivElement>(null)
   
-  // Get store actions
-  const { 
+    const { 
     getCachedBook, 
     cacheBook, 
     removeBookFromCache,
@@ -31,26 +29,22 @@ export default function BookPage() {
     getProgress
   } = useBookCacheStore()
   
-  // Load book data
-  useEffect(() => {
+    useEffect(() => {
     const loadBook = async () => {
       if (!bookId) return
       
       try {
         setLoading(true)
         
-        // Check cache first
-        const cachedBook = getCachedBook(bookId)
+                const cachedBook = getCachedBook(bookId)
         if (cachedBook) {
           console.log('Loading book from cache:', bookId)
           setBookData(cachedBook)
           setIsSaved(true)
           
-          // Get saved progress
-          const progress = getProgress(bookId)
+                    const progress = getProgress(bookId)
           if (progress) {
-            // Set analysis mode if that's where the user left off
-            if (progress.lastAnalysisType) {
+                        if (progress.lastAnalysisType) {
               setShowAnalysis(true)
             }
           }
@@ -59,16 +53,14 @@ export default function BookPage() {
           return
         }
         
-        // Not in cache, fetch from API
-        console.log('Fetching book from API:', bookId)
+                console.log('Fetching book from API:', bookId)
         const data = await fetchBookMetadata(bookId)
         setBookData({
           ...data,
           lastAccessed: new Date().toISOString()
         })
         
-        // Store in temp cache (but don't mark as explicitly saved)
-        cacheBook(data)
+                cacheBook(data)
         
       } catch (error) {
         console.error('Error loading book:', error)
@@ -80,15 +72,12 @@ export default function BookPage() {
     loadBook()
   }, [bookId, getCachedBook, cacheBook, getProgress ])
   
-  // Restore and save scroll position
-  useEffect(() => {
+    useEffect(() => {
     if (!bookData || loading) return
     
-    // Get saved progress
-    const progress = getProgress(bookId)
+        const progress = getProgress(bookId)
     if (progress && contentRef.current && !showAnalysis) {
-      // Restore scroll position
-      window.setTimeout(() => {
+            window.setTimeout(() => {
         window.scrollTo({
           top: progress.scrollPosition,
           behavior: 'auto'
@@ -96,8 +85,7 @@ export default function BookPage() {
       }, 100)
     }
     
-    // Save scroll position when component unmounts or bookId changes
-    const handleScroll = () => {
+        const handleScroll = () => {
       if (bookId) {
         saveProgress(bookId, {
           scrollPosition: window.scrollY,
@@ -106,8 +94,7 @@ export default function BookPage() {
       }
     }
     
-    // Debounced scroll handler
-    let scrollTimer: NodeJS.Timeout
+        let scrollTimer: NodeJS.Timeout
     const debouncedScroll = () => {
       clearTimeout(scrollTimer)
       scrollTimer = setTimeout(handleScroll, 200)
@@ -116,12 +103,10 @@ export default function BookPage() {
     window.addEventListener('scroll', debouncedScroll)
     return () => {
       window.removeEventListener('scroll', debouncedScroll)
-      handleScroll() // Save on unmount
-    }
+      handleScroll()     }
   }, [bookId, bookData, loading, showAnalysis, saveProgress, getProgress])
   
-  // Handle saving and removing book
-  const handleToggleSave = () => {
+    const handleToggleSave = () => {
     if (isSaved) {
       removeBookFromCache(bookId)
       setIsSaved(false)
@@ -136,15 +121,13 @@ export default function BookPage() {
   const handleAnalysisToggle = (show: boolean) => {
     setShowAnalysis(show)
     
-    // Save this in user progress
-    if (bookId) {
+        if (bookId) {
       saveProgress(bookId, {
         lastAnalysisType: show ? 'characters' : undefined
       })
     }
     
-    // When switching views, scroll to top
-    window.scrollTo({ top: 0, behavior: 'smooth' })
+        window.scrollTo({ top: 0, behavior: 'smooth' })
   }
   
   if (loading) {
