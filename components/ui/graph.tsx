@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useEffect, useRef } from 'react';
 
-// Define TypeScript interfaces
 interface Character {
   id: string;
   name: string;
@@ -57,37 +56,31 @@ const CharacterRelationshipGraph: React.FC<CharacterRelationshipGraphProps> = ({
   const svgRef = useRef<SVGSVGElement>(null);
   
   
-  // Set mounted state for CSR
-  useEffect(() => {
+    useEffect(() => {
     setMounted(true);
     return () => setMounted(false);
   }, []);
   
-  // Initialize and run the force simulation
-  useEffect(() => {
+    useEffect(() => {
     if (!mounted) return;
     
-    // Import d3 modules dynamically to avoid SSR issues
-    const importModules = async () => {
+        const importModules = async () => {
       try {
         const d3 = await import('d3');
         const data = characterData || { nodes: [], links: [] };
         
-        // Process the data to prepare for force layout
-        const nodes: GraphNode[] = data.nodes.map(node => ({
+                const nodes: GraphNode[] = data.nodes.map(node => ({
           ...node,
           x: Math.random() * width,
           y: Math.random() * height
         }));
         
-        // Create a map for quick node lookup
-        const nodeMap: Record<string, GraphNode> = {};
+                const nodeMap: Record<string, GraphNode> = {};
         nodes.forEach(node => {
           nodeMap[node.id] = node;
         });
         
-        // Process links to use actual node references
-        const links: GraphLink[] = data.links.map(link => {
+                const links: GraphLink[] = data.links.map(link => {
           const sourceId = typeof link.source === 'string' ? link.source : link.source.id;
           const targetId = typeof link.target === 'string' ? link.target : link.target.id;
           
@@ -98,8 +91,7 @@ const CharacterRelationshipGraph: React.FC<CharacterRelationshipGraphProps> = ({
           };
         });
         
-        // Initialize the simulation
-        simulationRef.current = d3.forceSimulation(nodes)
+                simulationRef.current = d3.forceSimulation(nodes)
           .force('charge', d3.forceManyBody().strength(-100))
           .force('center', d3.forceCenter(width / 2, height / 2))
           .force('link', d3.forceLink(links).id((d: any) => d.id).distance(100))
@@ -124,25 +116,21 @@ const CharacterRelationshipGraph: React.FC<CharacterRelationshipGraphProps> = ({
     };
   }, [characterData, width, height, mounted]);
   
-  // Clear selection when clicking on the background
-  const handleBackgroundClick = (): void => {
+    const handleBackgroundClick = (): void => {
     setSelected(null);
   };
   
-  // Handle node click
-  const handleNodeClick = (event: React.MouseEvent, node: GraphNode): void => {
+    const handleNodeClick = (event: React.MouseEvent, node: GraphNode): void => {
     event.stopPropagation();
     setSelected(node);
   };
   
-  // Handle link click
-  const handleLinkClick = (event: React.MouseEvent, link: GraphLink): void => {
+    const handleLinkClick = (event: React.MouseEvent, link: GraphLink): void => {
     event.stopPropagation();
     setSelected(link);
   };
   
-  // Color helper functions
-  const getGroupColor = (group: string): string => {
+    const getGroupColor = (group: string): string => {
     const colors: Record<string, string> = {
       'protagonists': '#4299E1',
       'allies': '#48BB78',
@@ -167,8 +155,7 @@ const CharacterRelationshipGraph: React.FC<CharacterRelationshipGraphProps> = ({
     return 1 + (strength || 1) / 4;
   };
   
-  // Check if the current object is a node
-  const isNode = (obj: any): obj is GraphNode => {
+    const isNode = (obj: any): obj is GraphNode => {
     return obj && 'name' in obj;
   };
   

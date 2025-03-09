@@ -5,20 +5,14 @@ import { compressTextForAnalysis } from './textCompressionUtils';
  * Splits book text into chapters based on common chapter patterns
  */
 export function splitBookIntoChapters(text: string): { title: string; content: string }[] {
-  // Common chapter heading patterns
-  const chapterPatterns = [
-    /\bCHAPTER\s+([IVXLCDM]+|\d+)(?:\s+|:|\.)/gi,  // CHAPTER I, CHAPTER 1, etc.
-    /\bChapter\s+([IVXLCDM]+|\d+)(?:\s+|:|\.)/g,   // Chapter I, Chapter 1, etc.
-    /\b([IVXLCDM]+|\d+)\.\s+/g,                    // I. or 1.
-    /\n\s*([IVXLCDM]+|\d+)\s*\n/g,                 // Roman numerals or numbers on their own line
-  ];
+    const chapterPatterns = [
+    /\bCHAPTER\s+([IVXLCDM]+|\d+)(?:\s+|:|\.)/gi,      /\bChapter\s+([IVXLCDM]+|\d+)(?:\s+|:|\.)/g,       /\b([IVXLCDM]+|\d+)\.\s+/g,                        /\n\s*([IVXLCDM]+|\d+)\s*\n/g,                   ];
   
   const chapterMarkers: { index: number; title: string }[] = [];
   
   for (const pattern of chapterPatterns) {
     let match;
-    // Reset pattern for each search
-    pattern.lastIndex = 0;
+        pattern.lastIndex = 0;
     
     while ((match = pattern.exec(text)) !== null) {
       const fullMatch = match[0];
@@ -30,16 +24,13 @@ export function splitBookIntoChapters(text: string): { title: string; content: s
     }
   }
   
-  // If no chapters were found, treat the whole text as one chapter
-  if (chapterMarkers.length === 0) {
+    if (chapterMarkers.length === 0) {
     return [{ title: "Complete Text", content: text }];
   }
   
-  // Sort markers by their position in the text
-  chapterMarkers.sort((a, b) => a.index - b.index);
+    chapterMarkers.sort((a, b) => a.index - b.index);
   
-  // Split text into chapters
-  const chapters: { title: string; content: string }[] = [];
+    const chapters: { title: string; content: string }[] = [];
   
   for (let i = 0; i < chapterMarkers.length; i++) {
     const currentMarker = chapterMarkers[i];
@@ -50,8 +41,7 @@ export function splitBookIntoChapters(text: string): { title: string; content: s
     
     const chapterContent = text.slice(startIndex, endIndex).trim();
     
-    // Only add if chapter has significant content (avoid false positives)
-    if (chapterContent.length > 100) {
+        if (chapterContent.length > 100) {
       chapters.push({
         title: `Chapter ${i + 1}: ${currentMarker.title}`,
         content: chapterContent
@@ -59,17 +49,13 @@ export function splitBookIntoChapters(text: string): { title: string; content: s
     }
   }
   
-  // If our chapter detection failed (resulted in no valid chapters),
-  // fall back to treating the whole text as one chapter
-  if (chapters.length === 0) {
+      if (chapters.length === 0) {
     return [{ title: "Complete Text", content: text }];
   }
   
-  // If we have many small chapters, combine them into larger chunks
-  if (chapters.length > 30) {
+    if (chapters.length > 30) {
     const combinedChapters: { title: string; content: string }[] = [];
-    const chapterGroupSize = Math.ceil(chapters.length / 20); // Aim for ~20 combined chapters
-    
+    const chapterGroupSize = Math.ceil(chapters.length / 20);     
     for (let i = 0; i < chapters.length; i += chapterGroupSize) {
       const group = chapters.slice(i, i + chapterGroupSize);
       const combinedContent = group.map(ch => ch.content).join('\n\n');
@@ -92,13 +78,10 @@ export function splitBookIntoChapters(text: string): { title: string; content: s
  * Extracts a chapter summary for display
  */
 export function getChapterPreview(chapterContent: string, maxLength: number = 200): string {
-  // Remove the chapter heading
-  const contentWithoutHeading = chapterContent
-    .replace(/^.*?\n/, '')  // Remove first line (likely the heading)
-    .trim();
+    const contentWithoutHeading = chapterContent
+    .replace(/^.*?\n/, '')      .trim();
   
-  // Return a preview of the chapter content
-  if (contentWithoutHeading.length <= maxLength) {
+    if (contentWithoutHeading.length <= maxLength) {
     return contentWithoutHeading;
   }
   
@@ -112,16 +95,13 @@ export function getChapterPreview(chapterContent: string, maxLength: number = 20
  * This enhanced version uses smart compression based on analysis type
  */
 export function truncateForAnalysis(text: string, analysisType: AnalysisType, maxLength: number = 4000): string {
-  // First apply smart compression based on analysis type
-  const compressed = compressTextForAnalysis(text, analysisType, maxLength);
+    const compressed = compressTextForAnalysis(text, analysisType, maxLength);
   
-  // If compressed version is still too long, use the old fallback approach
-  if (compressed.length <= maxLength) {
+    if (compressed.length <= maxLength) {
     return compressed;
   }
   
-  // For very long texts even after compression, take segments from beginning, middle and end
-  const thirdLength = Math.floor(maxLength / 3);
+    const thirdLength = Math.floor(maxLength / 3);
   
   const beginning = text.slice(0, thirdLength);
   const middle = text.slice(Math.floor(text.length / 2) - thirdLength / 2, Math.floor(text.length / 2) + thirdLength / 2);
@@ -136,8 +116,7 @@ export function truncateForAnalysis(text: string, analysisType: AnalysisType, ma
  * This is a rough approximation - actual tokenization varies by model
  */
 export function estimateTokenCount(text: number): number {
-  // A rough approximation is ~4 characters per token for English text
-  return Math.ceil(text / 4);
+    return Math.ceil(text / 4);
 }
 
 /**
@@ -148,12 +127,9 @@ export function calculateOptimalChunkSize(
   maxTokens: number = 4000,
   charsPerToken: number = 4
 ): number {
-  // Reserve some tokens for the prompt and response
-  const availableTokens = maxTokens * 0.7; // Use 70% of max tokens for input
-  const availableChars = availableTokens * charsPerToken;
+    const availableTokens = maxTokens * 0.7;   const availableChars = availableTokens * charsPerToken;
   
-  // If text fits within available tokens, return the full text length
-  if (textLength <= availableChars) {
+    if (textLength <= availableChars) {
     return textLength;
   }
   

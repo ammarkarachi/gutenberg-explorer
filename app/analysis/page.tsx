@@ -31,7 +31,6 @@ export default function AnalysisPage() {
   )
   
   const removeAnalysis = (id: string) => {
-    // In a real implementation, we would also remove from storage
     setAnalyses(analyses.filter(analysis => analysis.id !== id))
   }
   

@@ -47,8 +47,7 @@ const TextAnalysis = ({ bookId, bookTitle, bookContent }: AnalysisProps) => {
   const [analysisProgress, setAnalysisProgress] = useState(0)
   const [error, setError] = useState<string | null>(null)
   
-  // API Key Related State
-  const [apiKey, setApiKey] = useState<string | null>(null)
+    const [apiKey, setApiKey] = useState<string | null>(null)
   const [showApiKeyModal, setShowApiKeyModal] = useState(false)
   const [pendingAction, setPendingAction] = useState<{
     type: 'analyze' | 'detectLanguage' | 'analyze-all';
@@ -56,44 +55,37 @@ const TextAnalysis = ({ bookId, bookTitle, bookContent }: AnalysisProps) => {
     analysisType?: AnalysisType;
   } | null>(null)
   
-  // Get cache functions
-  const { 
+    const { 
     getCachedAnalysis, 
     cacheAnalysis, 
     saveProgress, 
     getProgress 
   } = useBookCacheStore()
   
-  // Store analysis results by chapter and type
-  const [analysisData, setAnalysisData] = useState<{
+    const [analysisData, setAnalysisData] = useState<{
     [chapterIndex: number]: {
       [key in AnalysisType]?: any
     }
   }>({})
   
-  // Check for stored API key on component mount
-  useEffect(() => {
+    useEffect(() => {
     const storedKey = getStoredApiKey(TEXT_ANALYSIS_SERVICE)
     if (storedKey) {
       setApiKey(storedKey)
     }
   }, [])
   
-  // Split the book into chapters on component mount
-  useEffect(() => {
+    useEffect(() => {
     if (bookContent) {
       const detectedChapters = splitBookIntoChapters(bookContent)
       setChapters(detectedChapters)
     }
   }, [bookContent])
   
-  // Load cached analyses and restore progress
-  useEffect(() => {
-    // Initialize analyses from cache
-    const newAnalysisData = { ...analysisData }
+    useEffect(() => {
+        const newAnalysisData = { ...analysisData }
     
-    // Go through all chapters and analysis types to check cache
-    for (let chapterIndex = 0; chapterIndex < chapters.length; chapterIndex++) {
+        for (let chapterIndex = 0; chapterIndex < chapters.length; chapterIndex++) {
       for (const type of ['characters', 'summary', 'sentiment', 'themes'] as AnalysisType[]) {
         const cachedResult = getCachedAnalysis(bookId, chapterIndex, type)
         if (cachedResult) {
@@ -105,13 +97,11 @@ const TextAnalysis = ({ bookId, bookTitle, bookContent }: AnalysisProps) => {
       }
     }
     
-    // Set analysis data if we found cached results
-    if (Object.keys(newAnalysisData).length > 0) {
+        if (Object.keys(newAnalysisData).length > 0) {
       setAnalysisData(newAnalysisData)
     }
     
-    // Restore progress if available
-    const progress = getProgress(bookId)
+        const progress = getProgress(bookId)
     if (progress) {
       if (progress.currentChapter !== undefined && chapters[progress.currentChapter]) {
         setActiveChapter(progress.currentChapter)
@@ -123,8 +113,7 @@ const TextAnalysis = ({ bookId, bookTitle, bookContent }: AnalysisProps) => {
     }
   }, [bookId, chapters])
   
-  // Save progress when chapter or analysis type changes
-  useEffect(() => {
+    useEffect(() => {
     if (bookId) {
       saveProgress(bookId, {
         currentChapter: activeChapter,
@@ -133,25 +122,21 @@ const TextAnalysis = ({ bookId, bookTitle, bookContent }: AnalysisProps) => {
     }
   }, [bookId, activeChapter, activeAnalysis, saveProgress])
     
-  // Actual language detection function
-  const performLanguageDetection = async (currentApiKey: string) => {
+    const performLanguageDetection = async (currentApiKey: string) => {
       setIsDetectingLanguage(true)
       setError(null)
       
       try {
-        // Set the API key for this call
-        process.env.NEXT_PUBLIC_GROQ_API_KEY = currentApiKey;
+                process.env.NEXT_PUBLIC_GROQ_API_KEY = currentApiKey;
         
         const result = await detectLanguage(bookContent)
         setLanguage(result)
         
   
       } catch (err: any) {
-        // Check if it's an authentication error
-        if (err.message?.includes('API key') || err.message?.includes('authentication') || err.message?.includes('unauthorized')) {
+                if (err.message?.includes('API key') || err.message?.includes('authentication') || err.message?.includes('unauthorized')) {
           setError('Invalid API key. Please check your API key and try again.')
-          setApiKey(null) // Clear the invalid key
-        } else {
+          setApiKey(null)         } else {
           setError(`Failed to detect language: ${err.message}`)
           console.error('Language detection error:', err)
         }
@@ -159,41 +144,34 @@ const TextAnalysis = ({ bookId, bookTitle, bookContent }: AnalysisProps) => {
         setIsDetectingLanguage(false)
       }
     }
-  // When API key is set, complete any pending action
-  useEffect(() => {
+    useEffect(() => {
     if (apiKey && pendingAction) {
       process.env.NEXT_PUBLIC_GROQ_API_KEY = apiKey;
 
       if (pendingAction.type === 'analyze' && 
           pendingAction.chapterIndex !== undefined && 
           pendingAction.analysisType) {
-        // Set environment variable for the API call
-        
-        // Continue with analysis
-        performAnalysis(
+                
+                performAnalysis(
           pendingAction.chapterIndex, 
           pendingAction.analysisType,
           apiKey
         )
       } else if (pendingAction.type === 'detectLanguage') {
-        // Continue with language detection
-        performLanguageDetection(apiKey)
+                performLanguageDetection(apiKey)
       } else if (pendingAction.type === 'analyze-all') {
         process.env.NEXT_PUBLIC_GROQ_API_KEY = apiKey
         analyzeAllChapters()
       }
       
-      // Clear the pending action
-      setPendingAction(null)
+            setPendingAction(null)
     }
   }, [apiKey, pendingAction])
   
-  // Function to detect language
-  const handleDetectLanguage = async () => {
+    const handleDetectLanguage = async () => {
     if (isDetectingLanguage) return
     
-    // Check if we have API key
-    if (!apiKey) {
+        if (!apiKey) {
       setPendingAction({
         type: 'detectLanguage'
       })
@@ -201,14 +179,12 @@ const TextAnalysis = ({ bookId, bookTitle, bookContent }: AnalysisProps) => {
       return
     }
     
-    // We have API key, proceed
-    performLanguageDetection(apiKey)
+        performLanguageDetection(apiKey)
   }
   
 
 
-  // Function to analyze all chapters (for the current type)
-  const analyzeAllChapters = async () => {
+    const analyzeAllChapters = async () => {
     if (isLoading || chapters.length === 0) return
     
     try {
@@ -226,11 +202,9 @@ const TextAnalysis = ({ bookId, bookTitle, bookContent }: AnalysisProps) => {
       }
       
       for (let i = 0; i < chapters.length; i++) {
-        // Update progress
-        setAnalysisProgress(Math.round((i / chapters.length) * 100))
+                setAnalysisProgress(Math.round((i / chapters.length) * 100))
         
-        // Skip if we already have this analysis
-        if (
+                if (
           checkExistingChapterAnalysis(i, activeAnalysis)
         ) {
           continue
@@ -249,20 +223,17 @@ const TextAnalysis = ({ bookId, bookTitle, bookContent }: AnalysisProps) => {
     }
   }
   
-  // Check if we already have analysis (either in state or cache)
-  const checkExistingChapterAnalysis = (chapterIndex: number, type: AnalysisType) => {
+    const checkExistingChapterAnalysis = (chapterIndex: number, type: AnalysisType) => {
     if (
       analysisData[chapterIndex] && 
       analysisData[chapterIndex][type]
     ) {
-      // Just show the existing analysis
-      setActiveChapter(chapterIndex)
+            setActiveChapter(chapterIndex)
       setActiveAnalysis(type)
       return true
     }
     
-    // Check cache one more time
-    const cachedResult = getCachedAnalysis(bookId, chapterIndex, type)
+        const cachedResult = getCachedAnalysis(bookId, chapterIndex, type)
     if (cachedResult) {
       setAnalysisData(prev => ({
         ...prev,
@@ -278,16 +249,14 @@ const TextAnalysis = ({ bookId, bookTitle, bookContent }: AnalysisProps) => {
     return false
   }
   
-  // Function to analyze a specific chapter
-  const handleAnalyzeChapter = async (chapterIndex: number, type: AnalysisType) => {
+    const handleAnalyzeChapter = async (chapterIndex: number, type: AnalysisType) => {
     if (isLoading) return
     
     
     if (checkExistingChapterAnalysis(chapterIndex, type)) {
       return
     }
-    // Need to run analysis - check for API key
-    if (!apiKey) {
+        if (!apiKey) {
       setPendingAction({
         type: 'analyze',
         chapterIndex,
@@ -297,12 +266,10 @@ const TextAnalysis = ({ bookId, bookTitle, bookContent }: AnalysisProps) => {
       return
     }
     
-    // We have the API key, proceed with analysis
-    performAnalysis(chapterIndex, type, apiKey)
+        performAnalysis(chapterIndex, type, apiKey)
   }
   
-  // Actual analysis function
-  const performAnalysis = async (chapterIndex: number, type: AnalysisType, currentApiKey: string, modifyLoading: boolean = true) => {
+    const performAnalysis = async (chapterIndex: number, type: AnalysisType, currentApiKey: string, modifyLoading: boolean = true) => {
     if (modifyLoading) {
       setIsLoading(true)
       setAnalysisProgress(0)
@@ -313,14 +280,11 @@ const TextAnalysis = ({ bookId, bookTitle, bookContent }: AnalysisProps) => {
     
     const chapterContent = chapters[chapterIndex].content
     try {
-      // Set the API key for this call
-      process.env.NEXT_PUBLIC_GROQ_API_KEY = currentApiKey;
+            process.env.NEXT_PUBLIC_GROQ_API_KEY = currentApiKey;
       
-      // Run analysis with Groq
-      const result = await analyzeWithGroq(chapterContent, type)
+            const result = await analyzeWithGroq(chapterContent, type)
       
-      // Update the analysis data
-      setAnalysisData(prev => ({
+            setAnalysisData(prev => ({
         ...prev,
         [chapterIndex]: {
           ...prev[chapterIndex],
@@ -328,8 +292,7 @@ const TextAnalysis = ({ bookId, bookTitle, bookContent }: AnalysisProps) => {
         }
       }))
       
-      // Cache the result
-      cacheAnalysis({
+            cacheAnalysis({
         bookId,
         chapterIndex,
         analysisType: type,
@@ -339,10 +302,9 @@ const TextAnalysis = ({ bookId, bookTitle, bookContent }: AnalysisProps) => {
             
       setActiveChapter(chapterIndex)
     } catch (err: any) {
-      // Check if it's an authentication error
-      if (err.message?.includes('API key') || err.message?.includes('authentication') || err.message?.includes('unauthorized')) {
+            if (err.message?.includes('API key') || err.message?.includes('authentication') || err.message?.includes('unauthorized')) {
         setError('Invalid API key. Please check your API key and try again.')
-        setApiKey(null) // Clear the invalid key
+        setApiKey(null)         
         setShowApiKeyModal(true)
       } else {
         setError(`Analysis failed: ${err.message || 'Unknown error'}`)
@@ -357,22 +319,19 @@ const TextAnalysis = ({ bookId, bookTitle, bookContent }: AnalysisProps) => {
     }
   }
   
-  // Handle API key submission from modal
-  const handleApiKeySubmit = (key: string) => {
+    const handleApiKeySubmit = (key: string) => {
     setApiKey(key)
     
 
   }
   
-  // Checks if a specific chapter has been analyzed
-  const isChapterAnalyzed = (chapterIndex: number, type: AnalysisType) => {
+    const isChapterAnalyzed = (chapterIndex: number, type: AnalysisType) => {
     return !!(
       analysisData[chapterIndex] && 
       analysisData[chapterIndex][type]
     )
   }
   
-  // Get currently active analysis data
   const getCurrentAnalysisData = () => {
     if (
       analysisData[activeChapter] && 
@@ -383,8 +342,7 @@ const TextAnalysis = ({ bookId, bookTitle, bookContent }: AnalysisProps) => {
     return null
   }
   
-  // Export analysis to JSON file
-  const exportAnalysis = () => {
+    const exportAnalysis = () => {
     const analysisJson = JSON.stringify(analysisData, null, 2)
     const blob = new Blob([analysisJson], { type: 'application/json' })
     const url = URL.createObjectURL(blob)

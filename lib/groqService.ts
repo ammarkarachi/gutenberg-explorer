@@ -3,7 +3,6 @@ import { truncateForAnalysis, estimateTokenCount } from './chapterUtils';
 import { AnalysisType } from '@/types';
 import { rateLimitManager, withRateLimit } from './rateLimitManager';
 /* eslint-disable @typescript-eslint/no-explicit-any */
-// Get API key from environment variable - will be set by TextAnalysis component
 const getGroqApiKey = (): string => {
   return process.env.NEXT_PUBLIC_GROQ_API_KEY || '';
 };
@@ -11,7 +10,6 @@ const getGroqApiKey = (): string => {
 const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
 const LARGE_MODEL = process.env.GROQ_LARGE_MODEL || 'llama-3.1-8b-instant'
 const SMALL_MODEL = process.env.GROQ_SMALL_MODEL ||'llama3-8b-8192'
-// Maximum tokens per model
 const MODEL_TOKEN_LIMITS = 8192
 
 interface GroqRequestParams {
@@ -31,16 +29,13 @@ interface GroqRequestParams {
 async function makeGroqRequest(params: GroqRequestParams) {
 
   
-  // Get API key at request time
-  const apiKey = getGroqApiKey();
+    const apiKey = getGroqApiKey();
   
-  // Validate API key is present
-  if (!apiKey || apiKey.trim() === '') {
+    if (!apiKey || apiKey.trim() === '') {
     throw new Error('API key is required for text analysis');
   }
   
-  // Use withRateLimit to handle rate limiting
-  return withRateLimit(async () => {
+    return withRateLimit(async () => {
     try {
       const response = await axios.post(GROQ_API_URL, params, {
         headers: {
@@ -51,8 +46,7 @@ async function makeGroqRequest(params: GroqRequestParams) {
       
       return response.data.choices[0].message.content;
     } catch (error: any) {
-      // Provide more helpful error messages for common issues
-      if (error.response) {
+            if (error.response) {
         if (error.response.status === 401) {
           throw new Error('Invalid API key. Please check your credentials and try again.');
         } else if (error.response.status === 429) {
@@ -61,8 +55,7 @@ async function makeGroqRequest(params: GroqRequestParams) {
           throw new Error(`API error: ${error.response.data.message || error.response.statusText}`);
         }
       }
-      throw error; // Re-throw if not a response error
-    }
+      throw error;     }
   }, 'groq');
 }
 
@@ -74,59 +67,46 @@ function optimizePromptForTokenLimit(
   prompt: string, 
   analysisType: AnalysisType,
   modelName: string,
-  reservedTokens: number = 1000  // Reserve tokens for system message and response
-): string {
-  // Get model token limit
-  const tokenLimit = MODEL_TOKEN_LIMITS;
+  reservedTokens: number = 1000  ): string {
+    const tokenLimit = MODEL_TOKEN_LIMITS;
   
-  // Calculate available tokens for the prompt
-  const availableTokens = tokenLimit - reservedTokens;
+    const availableTokens = tokenLimit - reservedTokens;
   
-  // Estimate current prompt token count
-  const estimatedTokens = estimateTokenCount(prompt.length);
+    const estimatedTokens = estimateTokenCount(prompt.length);
   
-  // If prompt fits within available tokens, return as is
-  if (estimatedTokens <= availableTokens) {
+    if (estimatedTokens <= availableTokens) {
     return prompt;
   }
   
-  // Calculate how much we need to reduce
-  const reductionFactor = availableTokens / estimatedTokens;
+    const reductionFactor = availableTokens / estimatedTokens;
   
-  // Extract the actual text from the prompt template
-  const textStart = prompt.indexOf('"""') + 3;
+    const textStart = prompt.indexOf('"""') + 3;
   const textEnd = prompt.lastIndexOf('"""');
   
   if (textStart >= 3 && textEnd > textStart) {
-    // Extract the text between the triple quotes
-    const textToCompress = prompt.substring(textStart, textEnd);
+        const textToCompress = prompt.substring(textStart, textEnd);
     const promptPrefix = prompt.substring(0, textStart);
     const promptSuffix = prompt.substring(textEnd);
     
-    // Calculate how many characters we can keep
-    const keepLength = Math.floor(textToCompress.length * reductionFactor);
+        const keepLength = Math.floor(textToCompress.length * reductionFactor);
     
-    // Compress the text
-    const compressedText = truncateForAnalysis(
+        const compressedText = truncateForAnalysis(
       textToCompress, 
       analysisType,
       keepLength
     );
     
-    // Reconstruct the prompt
-    return promptPrefix + compressedText + promptSuffix;
+        return promptPrefix + compressedText + promptSuffix;
   }
   
-  // Fallback if we can't find the text to compress
-  return prompt.substring(0, Math.floor(prompt.length * reductionFactor)) + '...';
+    return prompt.substring(0, Math.floor(prompt.length * reductionFactor)) + '...';
 }
 
 /**
  * Generates prompts for different analysis types
  */
 function getAnalysisPrompt(chapterContent: string, analysisType: AnalysisType): string {
-  // Truncate content to avoid token limits with smart compression
-  const truncatedContent = truncateForAnalysis(chapterContent, analysisType);
+    const truncatedContent = truncateForAnalysis(chapterContent, analysisType);
   
   switch (analysisType) {
     case 'characters':
@@ -224,16 +204,14 @@ ${truncatedContent}`;
 export async function analyzeWithGroq(
   chapterContent: string, 
   analysisType: AnalysisType,
-  modelName: string = LARGE_MODEL  // Default model
-): Promise<any> {
+  modelName: string = LARGE_MODEL  ): Promise<any> {
   const prompt = getAnalysisPrompt(chapterContent, analysisType);
   
   if (!prompt) {
     throw new Error(`Unsupported analysis type: ${analysisType}`);
   }
   
-  // Optimize prompt for token limit
-  const optimizedPrompt = optimizePromptForTokenLimit(prompt, analysisType, modelName);
+    const optimizedPrompt = optimizePromptForTokenLimit(prompt, analysisType, modelName);
   
   const params: GroqRequestParams = {
     model: modelName,
@@ -247,22 +225,18 @@ export async function analyzeWithGroq(
         content: optimizedPrompt
       }
     ],
-    temperature: 0.2,  // Lower temperature for more consistent responses
-  };
+    temperature: 0.2,    };
   
   const response = await makeGroqRequest(params);
   
-  // Try to parse JSON if expected
-  if (analysisType === 'characters' || analysisType === 'themes' || analysisType === 'sentiment' || analysisType === 'character-graph') {
+    if (analysisType === 'characters' || analysisType === 'themes' || analysisType === 'sentiment' || analysisType === 'character-graph') {
     try {
-      // Find JSON in the response (if there's any text around it)
-    const jsonMatch = response.match(/(\[|\{).*(\]|\})/s);
+          const jsonMatch = response.match(/(\[|\{).*(\]|\})/s);
     let jsonStr = jsonMatch ? jsonMatch[0] : response;
     try {
       return JSON.parse(jsonStr);
     } catch (parseError) {
-      // Attempt to complete the JSON if it doesn't match
-      console.error('Error parsing JSON from Groq response retry:', parseError);
+            console.error('Error parsing JSON from Groq response retry:', parseError);
       if (jsonStr.startsWith('{')) {
         jsonStr += '}';
       } else if (jsonStr.startsWith('[')) {
@@ -273,8 +247,7 @@ export async function analyzeWithGroq(
     }
     } catch (error) {
       console.error('Error parsing JSON from Groq response:', error);
-      return response; // Return the raw text if parsing fails
-    }
+      return response;     }
   }
   
   return response;
@@ -284,15 +257,12 @@ export async function analyzeWithGroq(
  * Detects the language of text using Groq API with optimization
  */
 export async function detectLanguage(text: string): Promise<{ language: string; confidence: number }> {
-  // Use a cached result if available
-  const cachedResult = getCachedLanguageDetection(text);
+    const cachedResult = getCachedLanguageDetection(text);
   if (cachedResult) {
     return cachedResult;
   }
   
-  // Truncate text for language detection - we don't need much for this task
-  // Take a sample from beginning, middle, and end to cover potential language switches
-  const textLength = text.length;
+      const textLength = text.length;
   const sampleSize = Math.min(300, Math.floor(textLength / 3));
   
   const beginning = text.slice(0, sampleSize);
@@ -302,8 +272,7 @@ export async function detectLanguage(text: string): Promise<{ language: string; 
   
   const sampleText = `${beginning}\n\n${middle}\n\n${end}`;
   
-  // Check rate limits before proceeding
-  const limitsInfo = rateLimitManager.getLimitsInfo('groq');
+    const limitsInfo = rateLimitManager.getLimitsInfo('groq');
   if (limitsInfo.minuteLimit.remaining <= 0) {
     const waitTime = rateLimitManager.getTimeToWait('groq');
     const waitSeconds = Math.ceil(waitTime / 1000);
@@ -311,8 +280,7 @@ export async function detectLanguage(text: string): Promise<{ language: string; 
   }
   
   const params: GroqRequestParams = {
-    model: SMALL_MODEL, // Can use a smaller model for language detection
-    messages: [
+    model: SMALL_MODEL,     messages: [
       {
         role: 'system',
         content: 'You are a language detection expert. Analyze the provided text and determine its language.'
@@ -339,8 +307,7 @@ Respond only with the JSON object, no additional text.`
     const jsonStr = jsonMatch ? jsonMatch[0] : response;
     const result = JSON.parse(jsonStr);
     
-    // Cache the result
-    cacheLanguageDetection(text, result);
+        cacheLanguageDetection(text, result);
     
     return result;
   } catch (error) {
@@ -349,12 +316,10 @@ Respond only with the JSON object, no additional text.`
   }
 }
 
-// Simple in-memory cache for language detection
 const languageCache = new Map<string, { language: string; confidence: number }>();
 
 function getCachedLanguageDetection(text: string): { language: string; confidence: number } | null {
-  // Use first 100 chars as key to avoid huge keys
-  const key = text.slice(0, 100);
+    const key = text.slice(0, 100);
   return languageCache.get(key) || null;
 }
 
@@ -374,18 +339,14 @@ export function getGroqRateLimits() {
  * Calculates the optimal compression level based on text length and model constraints
  */
 export function calculateCompressionOptions(textLength: number, analysisType: AnalysisType) {
-  // Estimate token count based on text length
-  const estimatedTokens = estimateTokenCount(textLength);
+    const estimatedTokens = estimateTokenCount(textLength);
   
-  // Default to minimum compression
-  let compressionLevel = 1;
+    let compressionLevel = 1;
   let modelName = 'llama3-70b-8192';
   let shouldCompress = false;
   
-  // Calculate appropriate compression level based on estimated tokens
-  if (estimatedTokens > 7000) {
-    // For very long texts, use high compression
-    compressionLevel = 5;
+    if (estimatedTokens > 7000) {
+        compressionLevel = 5;
     shouldCompress = true;
   } else if (estimatedTokens > 5000) {
     compressionLevel = 4;
@@ -398,8 +359,7 @@ export function calculateCompressionOptions(textLength: number, analysisType: An
     shouldCompress = true;
   }
   
-  // For theme analysis, which benefits from more context, use a higher capacity model if available
-  if (analysisType === 'themes' && estimatedTokens > 6000) {
+    if (analysisType === 'themes' && estimatedTokens > 6000) {
     modelName = 'mixtral-8x7b-32768';
   }
   
@@ -408,7 +368,5 @@ export function calculateCompressionOptions(textLength: number, analysisType: An
     modelName,
     shouldCompress,
     estimatedTokens,
-    estimatedRequestTokens: estimatedTokens + 500, // Include prompt overhead
-    estimatedCost: (estimatedTokens / 1000) * 0.0004 // Approximate cost at $0.0004 per 1K tokens
-  };
+    estimatedRequestTokens: estimatedTokens + 500,     estimatedCost: (estimatedTokens / 1000) * 0.0004   };
 }

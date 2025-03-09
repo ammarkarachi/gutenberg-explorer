@@ -19,9 +19,7 @@ const BookSearch = ({ onSelectBook }: { onSelectBook?: (bookId: string) => void 
   const searchRef = useRef<HTMLDivElement>(null)
   const router = useRouter()
 
-  // Perform the search when searchText changes
-  // In your real implementation, you'll replace this with your actual search function
-  useEffect(() => {
+      useEffect(() => {
     if (!searchText.trim() || searchText.length < 3) {
       setSearchResults([])
       return
@@ -36,8 +34,7 @@ const BookSearch = ({ onSelectBook }: { onSelectBook?: (bookId: string) => void 
     return () => clearTimeout(handler)
   }, [searchText])
   
-  // Close dropdown when clicking outside
-  useEffect(() => {
+    useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
         setShowDropdown(false)
@@ -56,8 +53,7 @@ const BookSearch = ({ onSelectBook }: { onSelectBook?: (bookId: string) => void 
     
     setIsLoading(true)
     
-    // Use the provided callback or navigate to the book page
-    if (onSelectBook) {
+        if (onSelectBook) {
       onSelectBook(bookId)
     } else {
       router.push(`/books/${bookId}`)
