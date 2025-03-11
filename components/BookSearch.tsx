@@ -1,76 +1,81 @@
-"use client"
+'use client';
 
-import { useState, useRef, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
-import { Search, BookOpen, X } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Card, CardContent } from '@/components/ui/card'
-import { BookRecord } from '@/types'
-import { searchBooks } from '@/lib/api'
+import { useState, useRef, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { Search, BookOpen, X } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Card, CardContent } from '@/components/ui/card';
+import { BookRecord } from '@/types';
+import { searchBooks } from '@/lib/api';
 
+const BookSearch = ({
+  onSelectBook,
+}: {
+  onSelectBook?: (bookId: string) => void;
+}) => {
+  const [bookId, setBookId] = useState('');
+  const [searchText, setSearchText] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [searchResults, setSearchResults] = useState<BookRecord[]>([]);
+  const searchRef = useRef<HTMLDivElement>(null);
+  const router = useRouter();
 
-const BookSearch = ({ onSelectBook }: { onSelectBook?: (bookId: string) => void }) => {
-  const [bookId, setBookId] = useState('')
-  const [searchText, setSearchText] = useState('')
-  const [isLoading, setIsLoading] = useState(false)
-  const [showDropdown, setShowDropdown] = useState(false)
-  const [searchResults, setSearchResults] = useState<BookRecord[]>([])
-  const searchRef = useRef<HTMLDivElement>(null)
-  const router = useRouter()
-
-      useEffect(() => {
+  useEffect(() => {
     if (!searchText.trim() || searchText.length < 3) {
-      setSearchResults([])
-      return
+      setSearchResults([]);
+      return;
     }
 
-    
     const handler = setTimeout(async () => {
-      const books = await searchBooks(searchText)
-      setSearchResults(books)
-    }, 300)
-    
-    return () => clearTimeout(handler)
-  }, [searchText])
-  
-    useEffect(() => {
+      const books = await searchBooks(searchText);
+      setSearchResults(books);
+    }, 300);
+
+    return () => clearTimeout(handler);
+  }, [searchText]);
+
+  useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
-        setShowDropdown(false)
+      if (
+        searchRef.current &&
+        !searchRef.current.contains(event.target as Node)
+      ) {
+        setShowDropdown(false);
       }
-    }
-    
-    document.addEventListener('mousedown', handleClickOutside)
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside)
-    }
-  }, [])
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
   const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!bookId.trim()) return
-    
-    setIsLoading(true)
-    
-        if (onSelectBook) {
-      onSelectBook(bookId)
+    e.preventDefault();
+    if (!bookId.trim()) return;
+
+    setIsLoading(true);
+
+    if (onSelectBook) {
+      onSelectBook(bookId);
     } else {
-      router.push(`/books/${bookId}`)
+      router.push(`/books/${bookId}`);
     }
-  }
-  
+  };
+
   const handleSelectBook = (book: BookRecord) => {
-    setBookId(book.gitb_id)
-    setSearchText(book.title)
-    setShowDropdown(false)
-  }
-  
+    setBookId(book.gitb_id);
+    setSearchText(book.title);
+    setShowDropdown(false);
+  };
+
   const clearSearch = () => {
-    setSearchText('')
-    setBookId('')
-    setSearchResults([])
-  }
+    setSearchText('');
+    setBookId('');
+    setSearchResults([]);
+  };
 
   return (
     <Card>
@@ -82,7 +87,7 @@ const BookSearch = ({ onSelectBook }: { onSelectBook?: (bookId: string) => void 
               Search for a book by title or enter a Project Gutenberg book ID.
             </p>
           </div>
-          
+
           <div className="relative" ref={searchRef}>
             <div className="flex gap-2">
               <div className="relative flex-1">
@@ -92,15 +97,15 @@ const BookSearch = ({ onSelectBook }: { onSelectBook?: (bookId: string) => void 
                   placeholder="Search by title or author"
                   value={searchText}
                   onChange={(e) => {
-                    setSearchText(e.target.value)
-                    setShowDropdown(true)
+                    setSearchText(e.target.value);
+                    setShowDropdown(true);
                   }}
                   onFocus={() => setShowDropdown(true)}
                   className="pl-10 pr-10"
                 />
                 {searchText && (
-                  <button 
-                    type="button" 
+                  <button
+                    type="button"
                     onClick={clearSearch}
                     className="absolute right-3 top-1/2 -translate-y-1/2"
                   >
@@ -108,7 +113,7 @@ const BookSearch = ({ onSelectBook }: { onSelectBook?: (bookId: string) => void 
                   </button>
                 )}
               </div>
-              
+
               <Button type="submit" disabled={isLoading || !bookId.trim()}>
                 {isLoading ? (
                   <span className="animate-spin mr-2">⟳</span>
@@ -118,35 +123,35 @@ const BookSearch = ({ onSelectBook }: { onSelectBook?: (bookId: string) => void 
                 Go to Book
               </Button>
             </div>
-            
+
             {/* Dropdown results */}
             {showDropdown && searchResults.length > 0 && (
-                <div className="absolute z-100 mt-1 w-full bg-slate-800 text-white rounded-md border border-gray-700 max-h-80 overflow-y-auto">
+              <div className="absolute z-100 mt-1 w-full bg-slate-800 text-white rounded-md border border-gray-700 max-h-80 overflow-y-auto">
                 <ul className="py-1">
-                  {searchResults.map(book => (
-                  <li 
-                  key={book.gitb_id}
-                  onClick={() => handleSelectBook(book)}
-                  className="px-4 py-2 cursor-pointer hover:bg-gray-700"
-                  >
-                  <div className="flex justify-between items-start">
-                  <div>
-                    <p className="font-medium">{book.title}</p>
-                  </div>
-                  <span className="text-xs text-gray-400">{book.gitb_id}</span>
-                  </div>
-                  </li>
+                  {searchResults.map((book) => (
+                    <li
+                      key={book.gitb_id}
+                      onClick={() => handleSelectBook(book)}
+                      className="px-4 py-2 cursor-pointer hover:bg-gray-700"
+                    >
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <p className="font-medium">{book.title}</p>
+                        </div>
+                        <span className="text-xs text-gray-400">
+                          {book.gitb_id}
+                        </span>
+                      </div>
+                    </li>
                   ))}
                 </ul>
-                </div>
+              </div>
             )}
           </div>
-          
-       
         </form>
       </CardContent>
     </Card>
-  )
-}
+  );
+};
 
-export default BookSearch
+export default BookSearch;

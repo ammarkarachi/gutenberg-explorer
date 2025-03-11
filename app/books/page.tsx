@@ -1,38 +1,38 @@
-"use client"
+'use client';
 
-import { useState, useEffect } from 'react'
-import Link from 'next/link'
-import { Card, CardContent } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Book, Clock, X, Search } from 'lucide-react'
-import { formatDistanceToNow } from 'date-fns'
-import { useBookCacheStore } from '@/lib/bookCacheStore'
-
+import { useState, useEffect } from 'react';
+import Link from 'next/link';
+import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Book, Clock, X, Search } from 'lucide-react';
+import { formatDistanceToNow } from 'date-fns';
+import { useBookCacheStore } from '@/lib/bookCacheStore';
 
 export default function SavedBooksPage() {
-  const [savedBooks, setSavedBooks] = useState<Array<{
-    id: string;
-    title: string;
-    author: string;
-    lastAccessed: Date;
-  }>>([])
-  const {
-    cachedBooks,
-    removeBookFromCache
-  } = useBookCacheStore()
+  const [savedBooks, setSavedBooks] = useState<
+    Array<{
+      id: string;
+      title: string;
+      author: string;
+      lastAccessed: Date;
+    }>
+  >([]);
+  const { cachedBooks, removeBookFromCache } = useBookCacheStore();
   useEffect(() => {
-    setSavedBooks(Object.values(cachedBooks).map(book => ({
-      ...book,
-      lastAccessed: new Date(book.lastAccessed)
-    })))
-  }, [setSavedBooks, cachedBooks])
-  
+    setSavedBooks(
+      Object.values(cachedBooks).map((book) => ({
+        ...book,
+        lastAccessed: new Date(book.lastAccessed),
+      }))
+    );
+  }, [setSavedBooks, cachedBooks]);
+
   const removeBook = (id: string) => {
-    setSavedBooks(savedBooks.filter(book => book.id !== id))
-    removeBookFromCache(id)
-  }
-  
+    setSavedBooks(savedBooks.filter((book) => book.id !== id));
+    removeBookFromCache(id);
+  };
+
   return (
     <div className="space-y-6">
       <div className="text-center max-w-2xl mx-auto py-10">
@@ -49,52 +49,63 @@ export default function SavedBooksPage() {
           </Link>
         </div>
       </div>
-      
+
       {savedBooks.length === 0 ? (
         <Card>
           <CardContent className="p-6 text-center">
-            <p className="text-gray-500">You haven&apos;t saved any books yet.</p>
+            <p className="text-gray-500">
+              You haven&apos;t saved any books yet.
+            </p>
           </CardContent>
         </Card>
       ) : (
         <Tabs defaultValue="grid">
           <div className="flex justify-between items-center mb-4">
             <div>
-              <p className="text-sm text-gray-500">{savedBooks.length} books saved</p>
+              <p className="text-sm text-gray-500">
+                {savedBooks.length} books saved
+              </p>
             </div>
             <TabsList>
               <TabsTrigger value="grid">Grid</TabsTrigger>
               <TabsTrigger value="list">List</TabsTrigger>
             </TabsList>
           </div>
-          
+
           <TabsContent value="grid">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {savedBooks.map(book => (
-                <Card key={book.id} className="relative overflow-hidden hover:shadow-md transition-shadow">
+              {savedBooks.map((book) => (
+                <Card
+                  key={book.id}
+                  className="relative overflow-hidden hover:shadow-md transition-shadow"
+                >
                   <CardContent className="p-6">
                     <Button
-                      variant="ghost" 
+                      variant="ghost"
                       size="icon"
                       onClick={() => removeBook(book.id)}
                       className="absolute top-2 right-2 h-8 w-8 rounded-full bg-white/80 hover:bg-white"
                     >
                       <X className="h-4 w-4" />
                     </Button>
-                    
+
                     <Link href={`/books/${book.id}`}>
                       <div className="flex flex-col h-full">
                         <div className="mb-2 flex items-start">
                           <Book className="h-5 w-5 mt-1 text-blue-500 mr-2" />
                           <div>
                             <h3 className="font-medium">{book.title}</h3>
-                            <p className="text-sm text-gray-600">{book.author}</p>
+                            <p className="text-sm text-gray-600">
+                              {book.author}
+                            </p>
                           </div>
                         </div>
                         <div className="mt-auto flex items-center pt-4 text-xs text-gray-500">
                           <Clock className="h-3 w-3 mr-1" />
                           <span>
-                            {formatDistanceToNow(book.lastAccessed, { addSuffix: true })}
+                            {formatDistanceToNow(book.lastAccessed, {
+                              addSuffix: true,
+                            })}
                           </span>
                         </div>
                       </div>
@@ -104,11 +115,14 @@ export default function SavedBooksPage() {
               ))}
             </div>
           </TabsContent>
-          
+
           <TabsContent value="list">
             <div className="space-y-3">
-              {savedBooks.map(book => (
-                <Card key={book.id} className="hover:shadow-md transition-shadow">
+              {savedBooks.map((book) => (
+                <Card
+                  key={book.id}
+                  className="hover:shadow-md transition-shadow"
+                >
                   <CardContent className="p-4">
                     <div className="flex justify-between items-center">
                       <Link href={`/books/${book.id}`} className="flex-1">
@@ -116,17 +130,21 @@ export default function SavedBooksPage() {
                           <Book className="h-5 w-5 text-blue-500 mr-3" />
                           <div>
                             <h3 className="font-medium">{book.title}</h3>
-                            <p className="text-sm text-gray-600">{book.author}</p>
+                            <p className="text-sm text-gray-600">
+                              {book.author}
+                            </p>
                           </div>
                         </div>
                       </Link>
-                      
+
                       <div className="flex items-center space-x-4">
                         <span className="text-xs text-gray-500">
-                          {formatDistanceToNow(book.lastAccessed, { addSuffix: true })}
+                          {formatDistanceToNow(book.lastAccessed, {
+                            addSuffix: true,
+                          })}
                         </span>
                         <Button
-                          variant="ghost" 
+                          variant="ghost"
                           size="icon"
                           onClick={() => removeBook(book.id)}
                           className="h-8 w-8 rounded-full"
@@ -143,5 +161,5 @@ export default function SavedBooksPage() {
         </Tabs>
       )}
     </div>
-  )
+  );
 }

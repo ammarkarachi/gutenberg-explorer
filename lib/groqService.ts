@@ -8,9 +8,9 @@ const getGroqApiKey = (): string => {
 };
 
 const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
-const LARGE_MODEL = process.env.GROQ_LARGE_MODEL || 'llama-3.1-8b-instant'
-const SMALL_MODEL = process.env.GROQ_SMALL_MODEL ||'llama3-8b-8192'
-const MODEL_TOKEN_LIMITS = 8192
+const LARGE_MODEL = process.env.GROQ_LARGE_MODEL || 'llama-3.1-8b-instant';
+const SMALL_MODEL = process.env.GROQ_SMALL_MODEL || 'llama3-8b-8192';
+const MODEL_TOKEN_LIMITS = 8192;
 
 interface GroqRequestParams {
   model: string;
@@ -22,92 +22,99 @@ interface GroqRequestParams {
   max_tokens?: number;
 }
 
-
 /**
  * Makes a request to the Groq API
  */
 async function makeGroqRequest(params: GroqRequestParams) {
+  const apiKey = getGroqApiKey();
 
-  
-    const apiKey = getGroqApiKey();
-  
-    if (!apiKey || apiKey.trim() === '') {
+  if (!apiKey || apiKey.trim() === '') {
     throw new Error('API key is required for text analysis');
   }
-  
-    return withRateLimit(async () => {
+
+  return withRateLimit(async () => {
     try {
       const response = await axios.post(GROQ_API_URL, params, {
         headers: {
-          'Authorization': `Bearer ${apiKey}`,
-          'Content-Type': 'application/json'
-        }
+          Authorization: `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+        },
       });
-      
+
       return response.data.choices[0].message.content;
     } catch (error: any) {
-            if (error.response) {
+      if (error.response) {
         if (error.response.status === 401) {
-          throw new Error('Invalid API key. Please check your credentials and try again.');
+          throw new Error(
+            'Invalid API key. Please check your credentials and try again.'
+          );
         } else if (error.response.status === 429) {
-          throw error
+          throw error;
         } else {
-          throw new Error(`API error: ${error.response.data.message || error.response.statusText}`);
+          throw new Error(
+            `API error: ${error.response.data.message || error.response.statusText}`
+          );
         }
       }
-      throw error;     }
+      throw error;
+    }
   }, 'groq');
 }
-
 
 /**
  * Optimizes prompt length based on model token limit
  */
 function optimizePromptForTokenLimit(
-  prompt: string, 
+  prompt: string,
   analysisType: AnalysisType,
   modelName: string,
-  reservedTokens: number = 1000  ): string {
-    const tokenLimit = MODEL_TOKEN_LIMITS;
-  
-    const availableTokens = tokenLimit - reservedTokens;
-  
-    const estimatedTokens = estimateTokenCount(prompt.length);
-  
-    if (estimatedTokens <= availableTokens) {
+  reservedTokens: number = 1000
+): string {
+  const tokenLimit = MODEL_TOKEN_LIMITS;
+
+  const availableTokens = tokenLimit - reservedTokens;
+
+  const estimatedTokens = estimateTokenCount(prompt.length);
+
+  if (estimatedTokens <= availableTokens) {
     return prompt;
   }
-  
-    const reductionFactor = availableTokens / estimatedTokens;
-  
-    const textStart = prompt.indexOf('"""') + 3;
+
+  const reductionFactor = availableTokens / estimatedTokens;
+
+  const textStart = prompt.indexOf('"""') + 3;
   const textEnd = prompt.lastIndexOf('"""');
-  
+
   if (textStart >= 3 && textEnd > textStart) {
-        const textToCompress = prompt.substring(textStart, textEnd);
+    const textToCompress = prompt.substring(textStart, textEnd);
     const promptPrefix = prompt.substring(0, textStart);
     const promptSuffix = prompt.substring(textEnd);
-    
-        const keepLength = Math.floor(textToCompress.length * reductionFactor);
-    
-        const compressedText = truncateForAnalysis(
-      textToCompress, 
+
+    const keepLength = Math.floor(textToCompress.length * reductionFactor);
+
+    const compressedText = truncateForAnalysis(
+      textToCompress,
       analysisType,
       keepLength
     );
-    
-        return promptPrefix + compressedText + promptSuffix;
+
+    return promptPrefix + compressedText + promptSuffix;
   }
-  
-    return prompt.substring(0, Math.floor(prompt.length * reductionFactor)) + '...';
+
+  return (
+    prompt.substring(0, Math.floor(prompt.length * reductionFactor)) + '...'
+  );
 }
 
 /**
  * Generates prompts for different analysis types
  */
-function getAnalysisPrompt(chapterContent: string, analysisType: AnalysisType): string {
-    const truncatedContent = truncateForAnalysis(chapterContent, analysisType);
-  
+function getAnalysisPrompt(
+  chapterContent: string,
+  analysisType: AnalysisType
+): string {
+  const truncatedContent = truncateForAnalysis(chapterContent, analysisType);
+
   switch (analysisType) {
     case 'characters':
       return `Analyze the following text excerpt from a book and identify the key characters present in this chapter. For each character, provide their name, a brief description of their role in this chapter, and their importance level (Primary, Secondary, Minor).
@@ -202,88 +209,112 @@ ${truncatedContent}`;
  * Analyzes text using Groq API with token optimization
  */
 export async function analyzeWithGroq(
-  chapterContent: string, 
+  chapterContent: string,
   analysisType: AnalysisType,
-  modelName: string = LARGE_MODEL  ): Promise<any> {
+  modelName: string = LARGE_MODEL
+): Promise<any> {
   const prompt = getAnalysisPrompt(chapterContent, analysisType);
-  
+
   if (!prompt) {
     throw new Error(`Unsupported analysis type: ${analysisType}`);
   }
-  
-    const optimizedPrompt = optimizePromptForTokenLimit(prompt, analysisType, modelName);
-  
+
+  const optimizedPrompt = optimizePromptForTokenLimit(
+    prompt,
+    analysisType,
+    modelName
+  );
+
   const params: GroqRequestParams = {
     model: modelName,
     messages: [
       {
         role: 'system',
-        content: 'You are a literary analysis assistant specializing in detailed textual analysis. Provide insightful, concise and accurate analysis following the user\'s requested format exactly. Make sure to give complete responses'
+        content:
+          "You are a literary analysis assistant specializing in detailed textual analysis. Provide insightful, concise and accurate analysis following the user's requested format exactly. Make sure to give complete responses",
       },
       {
         role: 'user',
-        content: optimizedPrompt
-      }
+        content: optimizedPrompt,
+      },
     ],
-    temperature: 0.2,    };
-  
+    temperature: 0.2,
+  };
+
   const response = await makeGroqRequest(params);
-  
-    if (analysisType === 'characters' || analysisType === 'themes' || analysisType === 'sentiment' || analysisType === 'character-graph') {
+
+  if (
+    analysisType === 'characters' ||
+    analysisType === 'themes' ||
+    analysisType === 'sentiment' ||
+    analysisType === 'character-graph'
+  ) {
     try {
-          const jsonMatch = response.match(/(\[|\{).*(\]|\})/s);
-    let jsonStr = jsonMatch ? jsonMatch[0] : response;
-    try {
-      return JSON.parse(jsonStr);
-    } catch (parseError) {
-            console.error('Error parsing JSON from Groq response retry:', parseError);
-      if (jsonStr.startsWith('{')) {
-        jsonStr += '}';
-      } else if (jsonStr.startsWith('[')) {
-        jsonStr += ']';
+      const jsonMatch = response.match(/(\[|\{).*(\]|\})/s);
+      let jsonStr = jsonMatch ? jsonMatch[0] : response;
+      try {
+        return JSON.parse(jsonStr);
+      } catch (parseError) {
+        console.error(
+          'Error parsing JSON from Groq response retry:',
+          parseError
+        );
+        if (jsonStr.startsWith('{')) {
+          jsonStr += '}';
+        } else if (jsonStr.startsWith('[')) {
+          jsonStr += ']';
+        }
+
+        return JSON.parse(jsonStr);
       }
-      
-      return JSON.parse(jsonStr);
-    }
     } catch (error) {
       console.error('Error parsing JSON from Groq response:', error);
-      return response;     }
+      return response;
+    }
   }
-  
+
   return response;
 }
 
 /**
  * Detects the language of text using Groq API with optimization
  */
-export async function detectLanguage(text: string): Promise<{ language: string; confidence: number }> {
-    const cachedResult = getCachedLanguageDetection(text);
+export async function detectLanguage(
+  text: string
+): Promise<{ language: string; confidence: number }> {
+  const cachedResult = getCachedLanguageDetection(text);
   if (cachedResult) {
     return cachedResult;
   }
-  
-      const textLength = text.length;
+
+  const textLength = text.length;
   const sampleSize = Math.min(300, Math.floor(textLength / 3));
-  
+
   const beginning = text.slice(0, sampleSize);
-  const middle = text.slice(Math.floor(textLength / 2) - Math.floor(sampleSize / 2), 
-                            Math.floor(textLength / 2) + Math.floor(sampleSize / 2));
+  const middle = text.slice(
+    Math.floor(textLength / 2) - Math.floor(sampleSize / 2),
+    Math.floor(textLength / 2) + Math.floor(sampleSize / 2)
+  );
   const end = text.slice(textLength - sampleSize);
-  
+
   const sampleText = `${beginning}\n\n${middle}\n\n${end}`;
-  
-    const limitsInfo = rateLimitManager.getLimitsInfo('groq');
+
+  const limitsInfo = rateLimitManager.getLimitsInfo('groq');
   if (limitsInfo.minuteLimit.remaining <= 0) {
     const waitTime = rateLimitManager.getTimeToWait('groq');
     const waitSeconds = Math.ceil(waitTime / 1000);
-    throw new Error(`Rate limit reached. Please try again in ${waitSeconds} seconds.`);
+    throw new Error(
+      `Rate limit reached. Please try again in ${waitSeconds} seconds.`
+    );
   }
-  
+
   const params: GroqRequestParams = {
-    model: SMALL_MODEL,     messages: [
+    model: SMALL_MODEL,
+    messages: [
       {
         role: 'system',
-        content: 'You are a language detection expert. Analyze the provided text and determine its language.'
+        content:
+          'You are a language detection expert. Analyze the provided text and determine its language.',
       },
       {
         role: 'user',
@@ -294,21 +325,21 @@ Text to analyze:
 ${sampleText}
 """
 
-Respond only with the JSON object, no additional text.`
-      }
+Respond only with the JSON object, no additional text.`,
+      },
     ],
-    temperature: 0.1
+    temperature: 0.1,
   };
-  
+
   const response = await makeGroqRequest(params);
-  
+
   try {
     const jsonMatch = response.match(/(\{).*(\})/s);
     const jsonStr = jsonMatch ? jsonMatch[0] : response;
     const result = JSON.parse(jsonStr);
-    
-        cacheLanguageDetection(text, result);
-    
+
+    cacheLanguageDetection(text, result);
+
     return result;
   } catch (error) {
     console.error('Error parsing language detection response:', error);
@@ -316,14 +347,22 @@ Respond only with the JSON object, no additional text.`
   }
 }
 
-const languageCache = new Map<string, { language: string; confidence: number }>();
+const languageCache = new Map<
+  string,
+  { language: string; confidence: number }
+>();
 
-function getCachedLanguageDetection(text: string): { language: string; confidence: number } | null {
-    const key = text.slice(0, 100);
+function getCachedLanguageDetection(
+  text: string
+): { language: string; confidence: number } | null {
+  const key = text.slice(0, 100);
   return languageCache.get(key) || null;
 }
 
-function cacheLanguageDetection(text: string, result: { language: string; confidence: number }): void {
+function cacheLanguageDetection(
+  text: string,
+  result: { language: string; confidence: number }
+): void {
   const key = text.slice(0, 100);
   languageCache.set(key, result);
 }
@@ -338,15 +377,18 @@ export function getGroqRateLimits() {
 /**
  * Calculates the optimal compression level based on text length and model constraints
  */
-export function calculateCompressionOptions(textLength: number, analysisType: AnalysisType) {
-    const estimatedTokens = estimateTokenCount(textLength);
-  
-    let compressionLevel = 1;
+export function calculateCompressionOptions(
+  textLength: number,
+  analysisType: AnalysisType
+) {
+  const estimatedTokens = estimateTokenCount(textLength);
+
+  let compressionLevel = 1;
   let modelName = 'llama3-70b-8192';
   let shouldCompress = false;
-  
-    if (estimatedTokens > 7000) {
-        compressionLevel = 5;
+
+  if (estimatedTokens > 7000) {
+    compressionLevel = 5;
     shouldCompress = true;
   } else if (estimatedTokens > 5000) {
     compressionLevel = 4;
@@ -358,15 +400,17 @@ export function calculateCompressionOptions(textLength: number, analysisType: An
     compressionLevel = 2;
     shouldCompress = true;
   }
-  
-    if (analysisType === 'themes' && estimatedTokens > 6000) {
+
+  if (analysisType === 'themes' && estimatedTokens > 6000) {
     modelName = 'mixtral-8x7b-32768';
   }
-  
+
   return {
     compressionLevel,
     modelName,
     shouldCompress,
     estimatedTokens,
-    estimatedRequestTokens: estimatedTokens + 500,     estimatedCost: (estimatedTokens / 1000) * 0.0004   };
+    estimatedRequestTokens: estimatedTokens + 500,
+    estimatedCost: (estimatedTokens / 1000) * 0.0004,
+  };
 }

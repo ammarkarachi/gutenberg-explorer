@@ -1,5 +1,5 @@
-import Link from 'next/link'
-import { Book, BarChart } from 'lucide-react'
+import Link from 'next/link';
+import { Book, BarChart } from 'lucide-react';
 
 const NavBar = () => {
   return (
@@ -10,7 +10,7 @@ const NavBar = () => {
             <Book className="h-6 w-6" />
             <span className="font-bold text-xl">Gutenberg Explorer</span>
           </Link>
-          
+
           <div className="flex items-center space-x-6">
             <Link href="/" className="text-gray-100 hover:text-black">
               Home
@@ -18,7 +18,10 @@ const NavBar = () => {
             <Link href="/books" className="text-gray-100 hover:text-black">
               My Books
             </Link>
-            <Link href="/analysis" className="text-gray-100 hover:text-black flex items-center">
+            <Link
+              href="/analysis"
+              className="text-gray-100 hover:text-black flex items-center"
+            >
               <BarChart className="mr-1 h-4 w-4" />
               Analysis
             </Link>
@@ -26,7 +29,7 @@ const NavBar = () => {
         </nav>
       </div>
     </header>
-  )
-}
+  );
+};
 
-export default NavBar
+export default NavBar;

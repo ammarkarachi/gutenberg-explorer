@@ -44,121 +44,128 @@ interface CharacterRelationshipGraphProps {
   height?: number;
 }
 
-const CharacterRelationshipGraph: React.FC<CharacterRelationshipGraphProps> = ({ 
-  characterData, 
-  width = 800, 
-  height = 500 
+const CharacterRelationshipGraph: React.FC<CharacterRelationshipGraphProps> = ({
+  characterData,
+  width = 800,
+  height = 500,
 }) => {
   const [graph, setGraph] = useState<ProcessedGraph | null>(null);
   const [selected, setSelected] = useState<GraphNode | GraphLink | null>(null);
   const [mounted, setMounted] = useState<boolean>(false);
   const simulationRef = useRef<any>(null);
   const svgRef = useRef<SVGSVGElement>(null);
-  
-  
-    useEffect(() => {
+
+  useEffect(() => {
     setMounted(true);
     return () => setMounted(false);
   }, []);
-  
-    useEffect(() => {
+
+  useEffect(() => {
     if (!mounted) return;
-    
-        const importModules = async () => {
+
+    const importModules = async () => {
       try {
         const d3 = await import('d3');
         const data = characterData || { nodes: [], links: [] };
-        
-                const nodes: GraphNode[] = data.nodes.map(node => ({
+
+        const nodes: GraphNode[] = data.nodes.map((node) => ({
           ...node,
           x: Math.random() * width,
-          y: Math.random() * height
+          y: Math.random() * height,
         }));
-        
-                const nodeMap: Record<string, GraphNode> = {};
-        nodes.forEach(node => {
+
+        const nodeMap: Record<string, GraphNode> = {};
+        nodes.forEach((node) => {
           nodeMap[node.id] = node;
         });
-        
-                const links: GraphLink[] = data.links.map(link => {
-          const sourceId = typeof link.source === 'string' ? link.source : link.source.id;
-          const targetId = typeof link.target === 'string' ? link.target : link.target.id;
-          
+
+        const links: GraphLink[] = data.links.map((link) => {
+          const sourceId =
+            typeof link.source === 'string' ? link.source : link.source.id;
+          const targetId =
+            typeof link.target === 'string' ? link.target : link.target.id;
+
           return {
             ...link,
             source: nodeMap[sourceId] || nodes[0],
-            target: nodeMap[targetId] || nodes[0]
+            target: nodeMap[targetId] || nodes[0],
           };
         });
-        
-                simulationRef.current = d3.forceSimulation(nodes)
+
+        simulationRef.current = d3
+          .forceSimulation(nodes)
           .force('charge', d3.forceManyBody().strength(-100))
           .force('center', d3.forceCenter(width / 2, height / 2))
-          .force('link', d3.forceLink(links).id((d: any) => d.id).distance(100))
+          .force(
+            'link',
+            d3
+              .forceLink(links)
+              .id((d: any) => d.id)
+              .distance(100)
+          )
           .on('tick', () => {
-            setGraph({ 
-              nodes: [...nodes], 
-              links: [...links] 
+            setGraph({
+              nodes: [...nodes],
+              links: [...links],
             });
           });
-        
       } catch (error) {
         console.error('Error loading d3 modules:', error);
       }
     };
-    
+
     importModules();
-    
+
     return () => {
       if (simulationRef.current) {
         simulationRef.current.stop();
       }
     };
   }, [characterData, width, height, mounted]);
-  
-    const handleBackgroundClick = (): void => {
+
+  const handleBackgroundClick = (): void => {
     setSelected(null);
   };
-  
-    const handleNodeClick = (event: React.MouseEvent, node: GraphNode): void => {
+
+  const handleNodeClick = (event: React.MouseEvent, node: GraphNode): void => {
     event.stopPropagation();
     setSelected(node);
   };
-  
-    const handleLinkClick = (event: React.MouseEvent, link: GraphLink): void => {
+
+  const handleLinkClick = (event: React.MouseEvent, link: GraphLink): void => {
     event.stopPropagation();
     setSelected(link);
   };
-  
-    const getGroupColor = (group: string): string => {
+
+  const getGroupColor = (group: string): string => {
     const colors: Record<string, string> = {
-      'protagonists': '#4299E1',
-      'allies': '#48BB78',
-      'villains': '#F56565',
-      'neutral': '#A0AEC0',
-      'faction': '#9F7AEA'
+      protagonists: '#4299E1',
+      allies: '#48BB78',
+      villains: '#F56565',
+      neutral: '#A0AEC0',
+      faction: '#9F7AEA',
     };
     return colors[group] || '#9F7AEA';
   };
-  
+
   const getSentimentColor = (sentiment: number): string => {
     if (sentiment > 0) return '#48BB78';
     if (sentiment < 0) return '#F56565';
     return '#A0AEC0';
   };
-  
+
   const getNodeRadius = (importance: number): number => {
     return 5 + (importance || 5);
   };
-  
+
   const getLinkWidth = (strength: number): number => {
     return 1 + (strength || 1) / 4;
   };
-  
-    const isNode = (obj: any): obj is GraphNode => {
+
+  const isNode = (obj: any): obj is GraphNode => {
     return obj && 'name' in obj;
   };
-  
+
   if (!mounted || !graph) {
     return (
       <div className="w-full h-full bg-[#121827] rounded-lg flex items-center justify-center">
@@ -166,15 +173,17 @@ const CharacterRelationshipGraph: React.FC<CharacterRelationshipGraphProps> = ({
       </div>
     );
   }
-  
+
   return (
     <div className="relative w-full h-full bg-[#121827] rounded-lg overflow-hidden">
-      <h2 className="py-6 text-xl text-center text-gray-400">Character Relationship Graph</h2>
-      
-      <div className="relative w-full h-full" onClick={handleBackgroundClick}  >
+      <h2 className="py-6 text-xl text-center text-gray-400">
+        Character Relationship Graph
+      </h2>
+
+      <div className="relative w-full h-full" onClick={handleBackgroundClick}>
         <svg ref={svgRef} width={width} height={height}>
           <rect width={width} height={height} fill="#121827" rx={14} />
-          
+
           {/* Render the links */}
           {graph.links.map((link, i) => (
             <line
@@ -183,7 +192,11 @@ const CharacterRelationshipGraph: React.FC<CharacterRelationshipGraphProps> = ({
               y1={link.source.y}
               x2={link.target.x}
               y2={link.target.y}
-              stroke={link === selected ? '#3B82F6' : getSentimentColor(link.sentiment)}
+              stroke={
+                link === selected
+                  ? '#3B82F6'
+                  : getSentimentColor(link.sentiment)
+              }
               strokeWidth={getLinkWidth(link.strength)}
               strokeOpacity={0.7}
               strokeLinecap="round"
@@ -191,7 +204,7 @@ const CharacterRelationshipGraph: React.FC<CharacterRelationshipGraphProps> = ({
               onClick={(e) => handleLinkClick(e, link)}
             />
           ))}
-          
+
           {/* Render the nodes */}
           {graph.nodes.map((node, i) => (
             <g key={`node-${i}`} onClick={(e) => handleNodeClick(e, node)}>
@@ -218,28 +231,58 @@ const CharacterRelationshipGraph: React.FC<CharacterRelationshipGraphProps> = ({
             </g>
           ))}
         </svg>
-        
+
         {selected && (
           <div className="absolute top-4 right-4 p-4 bg-[#1e293b] rounded-lg shadow-lg max-w-xs border border-gray-700">
             {isNode(selected) ? (
               <div className="space-y-2">
-                <h3 className="text-lg font-semibold text-gray-200">{selected.name}</h3>
-                <p className="text-sm text-gray-400">Group: <span className="font-medium text-gray-300">{selected.group}</span></p>
-                <p className="text-sm text-gray-400">Importance: <span className="font-medium text-gray-300">{selected.importance}/10</span></p>
+                <h3 className="text-lg font-semibold text-gray-200">
+                  {selected.name}
+                </h3>
+                <p className="text-sm text-gray-400">
+                  Group:{' '}
+                  <span className="font-medium text-gray-300">
+                    {selected.group}
+                  </span>
+                </p>
+                <p className="text-sm text-gray-400">
+                  Importance:{' '}
+                  <span className="font-medium text-gray-300">
+                    {selected.importance}/10
+                  </span>
+                </p>
               </div>
             ) : (
               <div className="space-y-2">
-                <h3 className="text-lg font-semibold text-gray-200">Relationship</h3>
-                <p className="text-sm text-gray-400">{selected.source.name} → {selected.target.name}</p>
-                <p className="text-sm text-gray-400">Type: <span className="font-medium text-gray-300">{selected.type}</span></p>
-                <p className="text-sm text-gray-400">Strength: <span className="font-medium text-gray-300">{selected.strength}/10</span></p>
+                <h3 className="text-lg font-semibold text-gray-200">
+                  Relationship
+                </h3>
                 <p className="text-sm text-gray-400">
-                  Sentiment: 
-                  <span className={`font-medium ml-1 ${
-                    selected.sentiment > 0 ? 'text-green-400' : 
-                    selected.sentiment < 0 ? 'text-red-400' : 
-                    'text-gray-400'
-                  }`}>
+                  {selected.source.name} → {selected.target.name}
+                </p>
+                <p className="text-sm text-gray-400">
+                  Type:{' '}
+                  <span className="font-medium text-gray-300">
+                    {selected.type}
+                  </span>
+                </p>
+                <p className="text-sm text-gray-400">
+                  Strength:{' '}
+                  <span className="font-medium text-gray-300">
+                    {selected.strength}/10
+                  </span>
+                </p>
+                <p className="text-sm text-gray-400">
+                  Sentiment:
+                  <span
+                    className={`font-medium ml-1 ${
+                      selected.sentiment > 0
+                        ? 'text-green-400'
+                        : selected.sentiment < 0
+                          ? 'text-red-400'
+                          : 'text-gray-400'
+                    }`}
+                  >
                     {selected.sentiment}
                   </span>
                 </p>
