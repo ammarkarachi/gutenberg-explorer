@@ -1,44 +1,47 @@
-"use client"
+'use client';
 
-import { useState, useEffect } from 'react'
-import Link from 'next/link'
-import { Book, Clock, ChevronRight } from 'lucide-react'
-import { Card, CardContent } from '@/components/ui/card'
-import { formatDistanceToNow } from 'date-fns'
-import { useBookCacheStore } from '@/lib/bookCacheStore'
-
+import { useState, useEffect } from 'react';
+import Link from 'next/link';
+import { Book, Clock, ChevronRight } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
+import { formatDistanceToNow } from 'date-fns';
+import { useBookCacheStore } from '@/lib/bookCacheStore';
 
 const BookList = () => {
-  const [recentBooks, setRecentBooks] = useState<Array<{
-    id: string;
-    title: string;
-    author: string;
-    lastAccessed: Date;
-  }>>([])
-  const {
-    getRecentBooks
-  } = useBookCacheStore()
+  const [recentBooks, setRecentBooks] = useState<
+    Array<{
+      id: string;
+      title: string;
+      author: string;
+      lastAccessed: Date;
+    }>
+  >([]);
+  const { getRecentBooks } = useBookCacheStore();
   useEffect(() => {
-    const books = getRecentBooks()
-    setRecentBooks(books.map(book => ({
-      ...book,
-      lastAccessed: new Date(book.lastAccessed)
-    })))
-  }, [getRecentBooks])
+    const books = getRecentBooks();
+    setRecentBooks(
+      books.map((book) => ({
+        ...book,
+        lastAccessed: new Date(book.lastAccessed),
+      }))
+    );
+  }, [getRecentBooks]);
 
   if (recentBooks.length === 0) {
     return (
       <Card>
         <CardContent className="p-6 text-center">
-          <p className="text-gray-500">You haven&apos;t explored any books yet.</p>
+          <p className="text-gray-500">
+            You haven&apos;t explored any books yet.
+          </p>
         </CardContent>
       </Card>
-    )
+    );
   }
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-      {recentBooks.map(book => (
+      {recentBooks.map((book) => (
         <Link key={book.id} href={`/books/${book.id}`}>
           <Card className="h-full hover:shadow-md transition-shadow cursor-pointer">
             <CardContent className="p-6">
@@ -51,7 +54,9 @@ const BookList = () => {
                     <div className="flex items-center mt-2 text-xs text-gray-500">
                       <Clock className="h-3 w-3 mr-1" />
                       <span>
-                        {formatDistanceToNow(book.lastAccessed, { addSuffix: true })}
+                        {formatDistanceToNow(book.lastAccessed, {
+                          addSuffix: true,
+                        })}
                       </span>
                     </div>
                   </div>
@@ -63,7 +68,7 @@ const BookList = () => {
         </Link>
       ))}
     </div>
-  )
-}
+  );
+};
 
-export default BookList
+export default BookList;
